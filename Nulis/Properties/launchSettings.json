@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "Nulis (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "Nulis (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
