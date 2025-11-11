@@ -365,3 +365,4 @@ FodyWeavers.xsd
 # Editor build output
 Nulis/Editor/dist/
 Nulis/Assets/milkdown/
+/Output

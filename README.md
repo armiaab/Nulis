@@ -1,86 +1,94 @@
-﻿# Nulis
+﻿# Nulis 📝
 
-A fast, lightweight, and distraction-free WYSIWYG markdown editor for Windows.
+**A modern, lightweight markdown editor for Windows**
 
-![Dark Theme](docs/dark.png)
-![Light Theme](docs/light.png)
+Built with WinUI 3, .NET 8, and Milkdown for a beautiful, distraction-free writing experience.
+
+![Version](https://img.shields.io/badge/version-0.1.0-blue)
+![Platform](https://img.shields.io/badge/platform-Windows-blue)
+![.NET](https://img.shields.io/badge/.NET-8.0-purple)
+![License](https://img.shields.io/badge/license-MIT-green)
 
 ## ✨ Features
 
-- 🎨 **Beautiful WYSIWYG Editor** - See your markdown rendered as you type
-- 🌓 **Dark & Light Themes** - Automatically follows your Windows theme
-- ⚡ **Lightning Fast** - Built with performance in mind
-- 🎯 **Distraction-Free** - Clean, minimal interface
-- 📝 **Full Markdown Support** - CommonMark + GitHub Flavored Markdown
-- 🖼️ **Image Support** - Drag & drop or paste images
-- ⌨️ **Keyboard Shortcuts** - Quick access to all features
-- 💾 **Auto-Save Tracking** - Never lose your work
-- 🎨 **Spell Check** - Built-in spell checking
-- 🔍 **Command Palette** - Quick access to all features (Ctrl+Shift+P)
+- 🎨 **Clean Interface** - Minimalist, distraction-free design
+- ⚡ **Real-time Preview** - WYSIWYG markdown editing powered by Milkdown
+- 📝 **Full Markdown Support** - CommonMark + GitHub Flavored Markdown (GFM)
+- 🎯 **File Associations** - Automatically handles `.md`, `.markdown`, and `.txt` files
+- 🚀 **Fast & Responsive** - Native Windows performance with WinUI 3
+- 💾 **Auto-save** - Never lose your work
+- 🌙 **Dark Mode** - Easy on the eyes
+- ⌨️ **Keyboard Shortcuts** - Efficient editing workflow
 
-## 🚀 Getting Started
+## 📥 Installation
 
-### Download & Install
+### Option 1: Download MSIX Installer (Recommended)
 
-#### Option 1: Download Pre-Built Release (Recommended)
+1. **Download** the latest installer from [Releases](https://github.com/armiaab/Nulis/releases)
+2. **Extract** the ZIP file
+3. **Run** the installation:
 
-1. **Download the latest release** from the [Releases page](https://github.com/armiaab/Nulis/releases)
-2. **Choose your platform:**
- - `Nulis-x64.zip` - For 64-bit Windows (most common)
-   - `Nulis-x86.zip` - For 32-bit Windows
-   - `Nulis-ARM64.zip` - For Windows on ARM devices
-3. **Extract the ZIP file** to a folder of your choice
-4. **Run `Nulis.exe`** from the extracted folder
+   **Easy Install (PowerShell):**
+   ```powershell
+   # Navigate to extracted folder
+   cd Nulis_[version]_x64_Test
+   
+   # Run installer script
+   .\Install.ps1
+   ```
 
-#### Option 2: Install via MSIX Package (Microsoft Store format)
+   **Manual Install:**
+   - Install certificate: Double-click `Nulis_[version]_x64.cer`
+     - Select "Local Machine" → "Trusted Root Certification Authorities"
+   - Install app: Double-click `Nulis_[version]_x64.msix`
 
-1. Download the `.msix` or `.msixbundle` file from [Releases](https://github.com/armiaab/Nulis/releases)
-2. Double-click to install
-3. Launch Nulis from the Start Menu
+4. **Launch** Nulis from Start Menu!
+
+### Option 2: Developer Mode Install
+
+For testers and developers:
+
+1. Enable **Developer Mode** in Windows:
+   - Settings → Privacy & Security → For developers → Turn on
+2. Install the certificate (see above)
+3. Double-click the MSIX to install
 
 ### System Requirements
 
-- **OS**: Windows 10 version 1809 (build 17763) or later
-- **Runtime**: .NET 8.0 Runtime (automatically included in releases)
-- **Additional**: WebView2 Runtime (automatically installed with Windows 11, or [download here](https://developer.microsoft.com/en-us/microsoft-edge/webview2/))
+- Windows 10 version 1809 (build 17763) or later
+- Windows 11 (recommended)
+- x64, x86, or ARM64 processor
+- .NET 8 Desktop Runtime (auto-installed)
+- WebView2 Runtime (pre-installed on Windows 11)
 
-## 📖 How to Use
+## 🎯 Usage
 
-### Basic Operations
+### Getting Started
 
-| Action | Shortcut | Description |
-|--------|----------|-------------|
-| **New File** | `Ctrl + N` | Create a new markdown file |
-| **Open File** | `Ctrl + O` | Open an existing file |
-| **Save** | `Ctrl + S` | Save current file |
-| **Save As** | `Ctrl + Shift + S` | Save as a new file |
-| **Rename** | `F2` | Rename the current file |
-| **Command Palette** | `Ctrl + Shift + P` | Show all commands |
+1. Launch Nulis from Start Menu
+2. Create a new file (`Ctrl+N`) or open existing (`Ctrl+O`)
+3. Start writing markdown!
 
-### Formatting
+### Keyboard Shortcuts
 
-| Action | Shortcut | Markdown |
-|--------|----------|----------|
-| **Bold** | `Ctrl + B` | `**text**` |
-| **Italic** | `Ctrl + I` | `*text*` |
-| **Heading 1** | Type `#` + Space | `# Heading` |
-| **Heading 2** | Type `##` + Space | `## Heading` |
-| **Code Block** | Type ` ``` ` | ` ```code``` ` |
-| **List** | Type `-` or `*` + Space | `- item` |
-| **Numbered List** | Type `1.` + Space | `1. item` |
-| **Quote** | Type `>` + Space | `> quote` |
+| Action | Shortcut |
+|--------|----------|
+| New file | `Ctrl+N` |
+| Open file | `Ctrl+O` |
+| Save | `Ctrl+S` |
+| Save as | `Ctrl+Shift+S` |
+| Close file | `Ctrl+W` |
+| Quit | `Ctrl+Q` |
 
-### Working with Images
+### File Associations
 
-1. **Drag & Drop** - Drag an image file into the editor
-2. **Command** - Use Command Palette (`Ctrl+Shift+P`) → "Pick Image"
-3. **Markdown** - Type `![alt text](image.png)`
+Nulis automatically registers for:
+- `.md` - Markdown files
+- `.markdown` - Markdown files
+- `.txt` - Text files
 
-### Opening Files
-
-- **Double-click** a `.md` file in File Explorer (after setting Nulis as default)
-- **Drag & drop** a markdown file onto Nulis
-- **Command line**: `Nulis.exe "path\to\file.md"`
+**Set as default:**
+Right-click a `.md` file → Open with → Choose Nulis → Check "Always use this app"
 
 ## 🛠️ Building from Source
 
@@ -88,52 +96,83 @@ A fast, lightweight, and distraction-free WYSIWYG markdown editor for Windows.
 
 - [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
 - [Node.js](https://nodejs.org/) (v18 or later)
-- [Visual Studio 2022](https://visualstudio.microsoft.com/) (optional, recommended)
+- [Visual Studio 2022](https://visualstudio.microsoft.com/) with:
+  - Windows App SDK workload
+  - Desktop development with C++
 
-### Clone & Build
+### Quick Build
 
 ```bash
 # Clone the repository
 git clone https://github.com/armiaab/Nulis.git
 cd Nulis
 
-# Build the project (this will also build the Milkdown editor)
-dotnet build Nulis\Nulis.csproj -c Release
-
-# Run the application
-dotnet run --project Nulis\Nulis.csproj
+# Build the MSIX installer
+.\build-quick.ps1
 ```
 
-### Development Build (with debugging)
+The installer will be created in `Output/Nulis_[version]_x64_Test/`
+
+### Development Build
 
 ```bash
-# Switch to master branch for development
-git checkout master
+# Clone and build
+git clone https://github.com/armiaab/Nulis.git
+cd Nulis
 
-# Build and run
+# Open in Visual Studio
+start Nulis.sln
+
+# Or build via command line
 dotnet build Nulis\Nulis.csproj -c Debug
+
+# Run
 dotnet run --project Nulis\Nulis.csproj
 ```
 
-### Production Build (optimized)
+### Production MSIX Build
+
+```powershell
+# Build x64 installer (recommended)
+.\build-installer.ps1 -Platform x64 -Configuration Release
+
+# Build for other platforms
+.\build-installer.ps1 -Platform x86
+.\build-installer.ps1 -Platform ARM64
+
+# Build all platforms at once
+.\build-all-platforms.ps1
+```
+
+For detailed build instructions, see:
+- **[BUILD_INSTALLER.md](BUILD_INSTALLER.md)** - Complete build guide
+- **[QUICKSTART.md](QUICKSTART.md)** - Quick start guide
+- **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - Fix common issues
+
+## 📦 Building Releases
+
+### Create MSIX Package
+
+The `production` branch contains optimized builds with MSIX installer support:
 
 ```bash
 # Switch to production branch
 git checkout production
 
-# Build for all platforms (x64, x86, ARM64)
-.\publish-production.ps1
+# Build installer
+.\build-quick.ps1
 
-# Or build for specific platform
-dotnet publish Nulis\Nulis.csproj -c Release -p:Platform=x64
+# Output: Output/Nulis_[version]_x64_Test/Nulis_[version]_x64.msix
 ```
 
-## 📦 Building Releases
+### Build Scripts
 
-For detailed instructions on creating production builds and releases, see:
-- **Production builds**: Switch to the `production` branch
-- **Publishing guide**: See `QUICK-PUBLISH.md` on the production branch
-- **Automated script**: Use `publish-production.ps1` on the production branch
+| Script | Purpose |
+|--------|---------|
+| `build-quick.ps1` | Quick x64 Release build |
+| `build-installer.ps1` | Custom platform/config build |
+| `build-all-platforms.ps1` | Build x64, x86, ARM64 |
+| `build-auto.ps1` | Auto-finds MSBuild |
 
 ## 🤝 Contributing
 
@@ -143,38 +182,79 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 1. Fork the repository
 2. Create a feature branch from `master`
+   ```bash
+   git checkout master
+   git checkout -b feature/amazing-feature
+   ```
 3. Make your changes
 4. Test thoroughly
-5. Submit a Pull Request to `master`
+5. Commit your changes
+   ```bash
+   git commit -m 'Add some amazing feature'
+   ```
+6. Push to the branch
+   ```bash
+   git push origin feature/amazing-feature
+   ```
+7. Open a Pull Request to `master`
 
-**Note**: The `production` branch is for optimized releases only. Always develop on `master`.
+**Note**: 
+- `master` - Development branch
+- `production` - Optimized releases with MSIX installer support
 
 ## 📝 Project Structure
 
 ```
 Nulis/
-├── Nulis/      # Main WinUI 3 application
-│   ├── Assets/   # Images and resources
+├── Nulis/                   # Main WinUI 3 application
+│   ├── Assets/              # Images and resources
 │   │   └── milkdown/        # Built editor files
-│   ├── Controls/            # Custom controls
+│   ├── Controls/            # Custom UI controls
 │   ├── Services/            # Application services
-│   ├── Editor/          # Milkdown editor source
-│   │   ├── src/            # TypeScript source
-│   │   └── package.json    # Node dependencies
-│   ├── App.xaml.cs# Application entry point
-│   ├── MainWindow.xaml.cs  # Main window logic
-│   └── Nulis.csproj        # Project file
-├── publish-production.ps1   # Production build script (production branch)
-└── README.md            # This file
+│   ├── Editor/              # Milkdown editor source
+│   │   ├── src/             # TypeScript source
+│   │   └── package.json     # Node dependencies
+│   ├── App.xaml.cs          # Application entry point
+│   ├── MainWindow.xaml.cs   # Main window logic
+│   └── Nulis.csproj         # Project file
+├── Output/                  # Build output (MSIX packages)
+├── build-installer.ps1      # Build script (production branch)
+├── build-quick.ps1          # Quick build (production branch)
+└── README.md                # This file
 ```
 
 ## 🔧 Technologies Used
 
-- **WinUI 3** - Modern Windows UI framework
-- **.NET 8** - Application runtime
-- **WebView2** - Web rendering engine
-- **Milkdown** - Markdown WYSIWYG editor
-- **ProseMirror** - Text editing framework
+- **[WinUI 3](https://docs.microsoft.com/windows/apps/winui/)** - Modern Windows UI framework
+- **[.NET 8](https://dot.net/)** - Application runtime
+- **[WebView2](https://developer.microsoft.com/microsoft-edge/webview2/)** - Web rendering engine
+- **[Milkdown](https://milkdown.dev/)** - Markdown WYSIWYG editor
+- **[ProseMirror](https://prosemirror.net/)** - Text editing framework
+- **[Vite](https://vitejs.dev/)** - Frontend build tool
+
+## 🗑️ Uninstall
+
+1. Open **Settings** → **Apps** → **Installed apps**
+2. Find **Nulis** in the list
+3. Click the three dots (⋯) → **Uninstall**
+4. Confirm
+
+## 🐛 Troubleshooting
+
+### "Package could not be registered"
+- Enable Developer Mode: Settings → Privacy & Security → For developers
+- Install certificate to "Trusted Root Certification Authorities"
+- Verify correct platform (x64/x86/ARM64 matches your system)
+
+### "App didn't start"
+- Requires Windows 10 version 1809 or later
+- Verify .NET 8 Desktop Runtime is installed
+- Try uninstalling and reinstalling
+
+### Certificate warnings
+Development builds use a self-signed certificate. For production, use a proper code signing certificate or distribute through Microsoft Store.
+
+**See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for more solutions.**
 
 ## ❓ FAQ
 
@@ -191,27 +271,38 @@ Yes! Nulis is a fully offline application.
 Files are saved wherever you choose. Nulis doesn't store files in a special location.
 
 ### Can I use Nulis on macOS or Linux?
-Currently, Nulis is Windows-only due to WinUI 3. Cross-platform support may come in the future.
+Currently Windows-only due to WinUI 3. Cross-platform support may come in the future.
 
-## 🐛 Known Issues & Limitations
+### How do I update Nulis?
+Download and install the latest MSIX from Releases. It will update automatically.
 
-- File must be saved before renaming
-- Large files (>10MB) may load slowly
-- Some advanced markdown features may not render perfectly
+## 🚀 Roadmap
+
+- [ ] Microsoft Store distribution
+- [ ] Custom themes and color schemes
+- [ ] Plugin/extension system
+- [ ] Cloud sync support
+- [ ] Collaborative editing
+- [ ] Export to PDF/HTML
+- [ ] Mobile companion app
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
 - [Milkdown](https://milkdown.dev/) - Beautiful markdown editor component
 - [ProseMirror](https://prosemirror.net/) - Powerful editing framework
 - [WinUI 3](https://docs.microsoft.com/windows/apps/winui/) - Modern Windows UI
+- [.NET](https://dot.net/) - Application framework
 
 ## 📞 Support
 
-- **Issues**: [GitHub Issues](https://github.com/armiaab/Nulis/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/armiaab/Nulis/discussions)
+- 🐛 **Issues**: [GitHub Issues](https://github.com/armiaab/Nulis/issues)
+- 💬 **Discussions**: [GitHub Discussions](https://github.com/armiaab/Nulis/discussions)
+- 📧 **Contact**: armia@example.com
 
 ---
+
+**Made with ❤️ by armia**
