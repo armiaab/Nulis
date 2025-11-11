@@ -144,11 +144,6 @@ dotnet run --project Nulis\Nulis.csproj
 .\build-all-platforms.ps1
 ```
 
-For detailed build instructions, see:
-- **[BUILD_INSTALLER.md](BUILD_INSTALLER.md)** - Complete build guide
-- **[QUICKSTART.md](QUICKSTART.md)** - Quick start guide
-- **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - Fix common issues
-
 ## 📦 Building Releases
 
 ### Create MSIX Package
@@ -254,8 +249,6 @@ Nulis/
 ### Certificate warnings
 Development builds use a self-signed certificate. For production, use a proper code signing certificate or distribute through Microsoft Store.
 
-**See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for more solutions.**
-
 ## ❓ FAQ
 
 ### Why can't I open certain file types?
@@ -296,13 +289,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [ProseMirror](https://prosemirror.net/) - Powerful editing framework
 - [WinUI 3](https://docs.microsoft.com/windows/apps/winui/) - Modern Windows UI
 - [.NET](https://dot.net/) - Application framework
-
-## 📞 Support
-
-- 🐛 **Issues**: [GitHub Issues](https://github.com/armiaab/Nulis/issues)
-- 💬 **Discussions**: [GitHub Discussions](https://github.com/armiaab/Nulis/discussions)
-- 📧 **Contact**: armia@example.com
-
----
-
-**Made with ❤️ by armia**
