@@ -91,6 +91,97 @@
             margin: 0.8em 0;
             padding: 0.8em;
         }
+
+        /* Slash Menu Styles */
+        .slash-dropdown {
+            position: fixed;
+            background: #2e3440;
+            border: 1px solid #4c566a;
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            padding: 6px;
+            min-width: 280px;
+            max-height: 400px;
+            overflow-y: auto;
+            z-index: 10000;
+        }
+
+        body.light .slash-dropdown {
+            background: #ffffff;
+            border: 1px solid #d8dee9;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+        }
+
+        .slash-dropdown-item {
+            padding: 10px 12px;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 2px;
+        }
+
+        .slash-dropdown-item:hover,
+        .slash-dropdown-item.selected {
+            background-color: #3b4252;
+        }
+
+        body.light .slash-dropdown-item:hover,
+        body.light .slash-dropdown-item.selected {
+            background-color: #e5e9f0;
+        }
+
+        .slash-dropdown-item-icon {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #434c5e;
+            border-radius: 6px;
+            color: #88c0d0;
+            flex-shrink: 0;
+        }
+
+        .slash-dropdown-item-icon svg {
+            width: 18px;
+            height: 18px;
+            display: block;
+        }
+
+        body.light .slash-dropdown-item-icon {
+            background: #e5e9f0;
+            color: #5e81ac;
+        }
+
+        .slash-dropdown-item-content {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            flex: 1;
+        }
+
+        .slash-dropdown-item-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #eceff4;
+        }
+
+        body.light .slash-dropdown-item-label {
+            color: #2e3440;
+        }
+
+        .slash-dropdown-item-description {
+            font-size: 12px;
+            color: #88c0d0;
+            opacity: 0.8;
+        }
+
+        body.light .slash-dropdown-item-description {
+            color: #5e81ac;
+        }
     </style>
 </head>
 <body>

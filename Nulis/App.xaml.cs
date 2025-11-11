@@ -2,22 +2,21 @@
 using Microsoft.UI.Xaml;
 using Nulis.Services;
 
-namespace Nulis
+namespace Nulis;
+
+public partial class App : Application
 {
-    public partial class App : Application
+    private Window? _window;
+
+    public App()
     {
-        private Window? _window;
+        InitializeComponent();
+        LoggerService.Initialize();
+    }
 
-        public App()
-        {
-            InitializeComponent();
-            LoggerService.Initialize();
-        }
-
-        protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
-        {
-            _window = new MainWindow();
-            _window.Activate();
-        }
+    protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
+    {
+        _window = new MainWindow();
+        _window.Activate();
     }
 }

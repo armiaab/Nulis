@@ -24,7 +24,7 @@ mono_crash.*
 x64/
 x86/
 [Ww][Ii][Nn]32/
-[Aa][Rr][Mm]/
+[Aa][Rr][Mm]/ 
 [Aa][Rr][Mm]64/
 bld/
 [Bb]in/
@@ -361,3 +361,10 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Editor build output
+Nulis/Editor/dist/
+Nulis/Assets/milkdown/
+Nulis/Assets/theme/
+Nulis/Assets/index.html
+Nulis/Assets/asset-manifest.json
