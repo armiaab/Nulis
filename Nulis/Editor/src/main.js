@@ -326,7 +326,7 @@ async function createEditor() {
         editorInstance = await Editor.make()
           .config((ctx) => {
        ctx.set(rootCtx, document.getElementById('app'));
-         ctx.set(defaultValueCtx, '# Start writing...\n\nType your markdown here.');
+         ctx.set(defaultValueCtx, ''); // Start with empty content
          
           ctx.get(listenerCtx).markdownUpdated((ctx, markdown) => {
   if (window.chrome && window.chrome.webview) {
@@ -335,6 +335,9 @@ async function createEditor() {
             content: markdown
  });
            }
+           
+           // Update placeholder visibility
+           updatePlaceholder();
           });
        })
     .use(nord)
@@ -355,7 +358,16 @@ async function createEditor() {
      prosemirror.spellcheck = true;
   console.log('✓ Spellcheck enabled on ProseMirror');
     
+  // Auto-focus the editor
+  prosemirror.focus();
+  console.log('✓ Editor auto-focused');
+  
+  // Create and add placeholder
+  createPlaceholder();
+  
    prosemirror.addEventListener('keyup', (e) => {
+     updatePlaceholder();
+     
   if (e.key === '/') {
  editorInstance.action((ctx) => {
   const view = ctx.get(editorViewCtx);
@@ -384,11 +396,71 @@ e.key !== 'Control' &&
        slashTriggerPos = null;
       }
       });
+      
+      // Also update placeholder on clicks and focus
+      prosemirror.addEventListener('click', updatePlaceholder);
+      prosemirror.addEventListener('focus', updatePlaceholder);
   }
      }, 500);
     } catch (error) {
         console.error('✗ Milkdown initialization error:', error);
         document.getElementById('app').innerHTML = `<div style="color: red; padding: 20px;">Error loading editor: ${error.message}</div>`;
+    }
+}
+
+function createPlaceholder() {
+    // Remove any existing placeholder
+    const existing = document.getElementById('editor-placeholder');
+    if (existing) existing.remove();
+    
+    const placeholder = document.createElement('div');
+    placeholder.id = 'editor-placeholder';
+    placeholder.textContent = 'Type your markdown here...';
+    placeholder.style.cssText = `
+        position: absolute;
+        top: 36px;
+        left: 5%;
+        color: #6c757d;
+        opacity: 0.5;
+        pointer-events: none;
+        font-size: 15px;
+        line-height: 1.7;
+        font-family: 'Segoe UI', Arial, sans-serif;
+    `;
+    
+    // Add to app container
+    const app = document.getElementById('app');
+    if (app) {
+        app.appendChild(placeholder);
+        updatePlaceholder();
+    }
+}
+
+function updatePlaceholder() {
+    const placeholder = document.getElementById('editor-placeholder');
+    if (!placeholder) return;
+    
+    try {
+        if (!editorInstance) {
+            placeholder.style.display = 'block';
+            return;
+        }
+        
+        const markdown = editorInstance.action((ctx) => {
+            const view = ctx.get(editorViewCtx);
+            const serializer = ctx.get(serializerCtx);
+            return serializer(view.state.doc);
+        });
+        
+        // Hide placeholder if there's any content at all (including spaces and newlines)
+        // Don't trim - we want even whitespace to hide the placeholder
+        if (markdown && markdown.length > 0) {
+            placeholder.style.display = 'none';
+        } else {
+            placeholder.style.display = 'block';
+        }
+    } catch (e) {
+        console.error('Error updating placeholder:', e);
     }
 }
 
@@ -400,17 +472,17 @@ window.getMarkdown = () => {
         return '';
     }
     try {
-    const markdown = editorInstance.action((ctx) => {
+        const markdown = editorInstance.action((ctx) => {
             const view = ctx.get(editorViewCtx);
             const serializer = ctx.get(serializerCtx);
-        return serializer(view.state.doc);
+            return serializer(view.state.doc);
         });
         
         console.log('getMarkdown returning:', markdown.substring(0, 100) + '...');
         return markdown;
     } catch (e) {
         console.error('getMarkdown error:', e);
-      return '';
+        return '';
     }
 };
 
@@ -423,22 +495,22 @@ window.setMarkdown = (text) => {
     console.log('setMarkdown called with text length:', text?.length);
     
     try {
-  editorInstance.action(replaceAll(text || ''));
+        editorInstance.action(replaceAll(text || ''));
         console.log('✓ Markdown content updated successfully');
     } catch (e) {
-   console.error('✗ setMarkdown error:', e);
+        console.error('✗ setMarkdown error:', e);
         
-   try {
-  editorInstance.action((ctx) => {
-       const view = ctx.get(editorViewCtx);
-      const state = view.state;
-     const tr = state.tr.replaceWith(0, state.doc.content.size, 
-  state.schema.text(text || ''));
-      view.dispatch(tr);
-         console.log('✓ Markdown updated via fallback method');
-        });
+        try {
+            editorInstance.action((ctx) => {
+                const view = ctx.get(editorViewCtx);
+                const state = view.state;
+                const tr = state.tr.replaceWith(0, state.doc.content.size, 
+                    state.schema.text(text || ''));
+                view.dispatch(tr);
+                console.log('✓ Markdown updated via fallback method');
+            });
         } catch (e2) {
-  console.error('✗ Fallback setMarkdown also failed:', e2);
+            console.error('✗ Fallback setMarkdown also failed:', e2);
         }
     }
 };
@@ -449,51 +521,51 @@ window.setTheme = (isDark) => {
 
 document.addEventListener('keydown', (e) => {
     if (isSlashMenuVisible()) {
-      if (e.key === 'ArrowDown') {
-  e.preventDefault();
-    e.stopPropagation();
-   updateSlashSelection(selectedSlashIndex + 1);
-  return false;
- }
-if (e.key === 'ArrowUp') {
-       e.preventDefault();
- e.stopPropagation();
-    updateSlashSelection(selectedSlashIndex - 1);
-    return false;
-  }
-   if (e.key === 'Enter') {
-    e.preventDefault();
-     e.stopPropagation();
- executeSelectedSlashItem();
-   return false;
- }
-    if (e.key === 'Escape') {
- e.preventDefault();
-   e.stopPropagation();
-    hideSlashMenu();
-     slashTriggerPos = null;
-  return false;
-}
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            e.stopPropagation();
+            updateSlashSelection(selectedSlashIndex + 1);
+            return false;
+        }
+        if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            e.stopPropagation();
+            updateSlashSelection(selectedSlashIndex - 1);
+            return false;
+        }
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            e.stopPropagation();
+            executeSelectedSlashItem();
+            return false;
+        }
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            e.stopPropagation();
+            hideSlashMenu();
+            slashTriggerPos = null;
+            return false;
+        }
     }
     
     if (e.ctrlKey && e.key === 'o') {
         e.preventDefault();
-  e.stopPropagation();
-  console.log('Ctrl+O detected, sending to C#');
+        e.stopPropagation();
+        console.log('Ctrl+O detected, sending to C#');
         if (window.chrome && window.chrome.webview) {
-  window.chrome.webview.postMessage({ action: 'open' });
- }
-return false;
+            window.chrome.webview.postMessage({ action: 'open' });
+        }
+        return false;
     }
     
     if (e.ctrlKey && e.shiftKey && e.key === 'S') {
-    e.preventDefault();
+        e.preventDefault();
         e.stopPropagation();
         console.log('Ctrl+Shift+S detected, sending to C#');
         if (window.chrome && window.chrome.webview) {
-          window.chrome.webview.postMessage({ action: 'saveAs' });
-  }
-      return false;
+            window.chrome.webview.postMessage({ action: 'saveAs' });
+        }
+        return false;
     }
     
     if (e.ctrlKey && e.key === 's') {
@@ -501,19 +573,19 @@ return false;
         e.stopPropagation();
         console.log('Ctrl+S detected, sending to C#');
         if (window.chrome && window.chrome.webview) {
-         window.chrome.webview.postMessage({ action: 'save' });
- }
+            window.chrome.webview.postMessage({ action: 'save' });
+        }
         return false;
     }
     
     if (e.key === 'F2') {
-      e.preventDefault();
+        e.preventDefault();
         e.stopPropagation();
-   console.log('F2 detected, sending to C#');
+        console.log('F2 detected, sending to C#');
         if (window.chrome && window.chrome.webview) {
-       window.chrome.webview.postMessage({ action: 'rename' });
- }
-      return false;
+            window.chrome.webview.postMessage({ action: 'rename' });
+        }
+        return false;
     }
 
     if (e.ctrlKey && e.shiftKey && e.key === 'P') {
@@ -529,8 +601,8 @@ return false;
 
 document.addEventListener('click', (e) => {
     if (isSlashMenuVisible() && !slashMenu.contains(e.target)) {
- hideSlashMenu();
-      slashTriggerPos = null;
+        hideSlashMenu();
+        slashTriggerPos = null;
     }
 });
 

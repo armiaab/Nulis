@@ -182,7 +182,7 @@ public sealed partial class MainWindow : Window
             { 
                 Name = "Undo", 
                 Description = "Undo the last action",
-                Shortcut = "", 
+                Shortcut = "Ctrl+Z", 
                 SearchTerms = new List<string> { "undo", "revert" },
                 Action = async () => await ExecuteScriptSafely("executeCommand('undo')") 
             },
@@ -190,7 +190,7 @@ public sealed partial class MainWindow : Window
             { 
                 Name = "Redo", 
                 Description = "Redo the last undone action",
-                Shortcut = "", 
+                Shortcut = "Ctrl+Y", 
                 SearchTerms = new List<string> { "redo", "repeat" },
                 Action = async () => await ExecuteScriptSafely("executeCommand('redo')") 
             },
@@ -198,7 +198,7 @@ public sealed partial class MainWindow : Window
             { 
                 Name = "Bold", 
                 Description = "Make text bold",
-                Shortcut = "", 
+                Shortcut = "Ctrl+B", 
                 SearchTerms = new List<string> { "bold", "strong", "format" },
                 Action = async () => await ExecuteScriptSafely("document.execCommand('bold')") 
             },
@@ -206,7 +206,7 @@ public sealed partial class MainWindow : Window
             { 
                 Name = "Italic", 
                 Description = "Make text italic",
-                Shortcut = "", 
+                Shortcut = "Ctrl+I", 
                 SearchTerms = new List<string> { "italic", "emphasis", "format" },
                 Action = async () => await ExecuteScriptSafely("document.execCommand('italic')") 
             },
@@ -214,7 +214,7 @@ public sealed partial class MainWindow : Window
             { 
                 Name = "Select All", 
                 Description = "Select all text in the editor",
-                Shortcut = "", 
+                Shortcut = "Ctrl+A", 
                 SearchTerms = new List<string> { "select", "select all", "all" },
                 Action = async () => await ExecuteScriptSafely("document.execCommand('selectAll')") 
             }

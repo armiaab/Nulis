@@ -46,13 +46,13 @@
                       VerticalScrollBarVisibility="Auto">
             <ItemsControl x:Name="CommandsItemsControl">
                 <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="local:CommandItem">
+                    <DataTemplate>
                         <Button HorizontalAlignment="Stretch"
                                 HorizontalContentAlignment="Stretch"
                                 Padding="12,10"
                                 Margin="0,0,0,2"
                                 Click="CommandButton_Click"
-                                Tag="{x:Bind}"
+                                Tag="{Binding}"
                                 CornerRadius="6"
                                 BorderThickness="1"
                                 Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
@@ -64,15 +64,15 @@
                                 </Grid.ColumnDefinitions>
 
                                 <StackPanel Grid.Column="0" Spacing="3">
-                                    <TextBlock Text="{x:Bind Name}"
+                                    <TextBlock Text="{Binding Name}"
                                                FontSize="13"
                                                FontWeight="SemiBold"
                                                Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
-                                    <TextBlock Text="{x:Bind Description}"
+                                    <TextBlock Text="{Binding Description}"
                                                FontSize="11"
                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                                TextWrapping="Wrap"
-                                               Visibility="{x:Bind DescriptionVisibility}"/>
+                                               Visibility="{Binding DescriptionVisibility}"/>
                                 </StackPanel>
 
                                 <Border Grid.Column="1"
@@ -81,8 +81,8 @@
                                         Padding="8,4"
                                         VerticalAlignment="Center"
                                         Margin="12,0,0,0"
-                                        Visibility="{x:Bind ShortcutVisibility}">
-                                    <TextBlock Text="{x:Bind Shortcut}"
+                                        Visibility="{Binding ShortcutVisibility}">
+                                    <TextBlock Text="{Binding Shortcut}"
                                                FontSize="11"
                                                FontFamily="Consolas"
                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
