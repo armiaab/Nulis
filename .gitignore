@@ -365,6 +365,3 @@ FodyWeavers.xsd
 # Editor build output
 Nulis/Editor/dist/
 Nulis/Assets/milkdown/
-Nulis/Assets/theme/
-Nulis/Assets/index.html
-Nulis/Assets/asset-manifest.json
