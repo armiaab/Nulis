@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8" ?>
 <Application
     x:Class="Nulis.App"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -8,59 +8,63 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
-                <!-- Other merged dictionaries here -->
+                <!--  Other merged dictionaries here  -->
             </ResourceDictionary.MergedDictionaries>
 
-            <!-- Centered ComboBox Style -->
+            <!--  Centered ComboBox Style  -->
             <Style x:Key="CenteredComboBoxStyle" TargetType="ComboBox">
-                <Setter Property="MinWidth" Value="0"/>
+                <Setter Property="MinWidth" Value="0" />
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="ComboBox">
                             <Grid>
                                 <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
                                 </Grid.RowDefinitions>
 
-                                <Border x:Name="Background"
-                                        Grid.Row="0"
-                                        Background="Transparent"
-                                        CornerRadius="4"
-                                        Padding="12,8">
-                                    <ContentPresenter x:Name="ContentPresenter"
-                                                      Content="{TemplateBinding SelectionBoxItem}"
-                                                      ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
-                                                      HorizontalAlignment="Center"
-                                                      VerticalAlignment="Center"/>
+                                <Border
+                                    x:Name="Background"
+                                    Grid.Row="0"
+                                    Padding="12,8"
+                                    Background="Transparent"
+                                    CornerRadius="4">
+                                    <ContentPresenter
+                                        x:Name="ContentPresenter"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Content="{TemplateBinding SelectionBoxItem}"
+                                        ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" />
                                 </Border>
 
-                                <Popup x:Name="Popup"
-                                       Grid.Row="1"
-                                       IsOpen="{TemplateBinding IsDropDownOpen}"
-                                       HorizontalAlignment="Stretch">
-                                    <Border Background="{ThemeResource ComboBoxDropDownBackground}"
-                                            BorderBrush="{ThemeResource ComboBoxDropDownBorderBrush}"
-                                            BorderThickness="1"
-                                            CornerRadius="4"
-                                            Padding="0,4">
+                                <Popup
+                                    x:Name="Popup"
+                                    Grid.Row="1"
+                                    HorizontalAlignment="Stretch"
+                                    IsOpen="{TemplateBinding IsDropDownOpen}">
+                                    <Border
+                                        Padding="0,4"
+                                        Background="{ThemeResource ComboBoxDropDownBackground}"
+                                        BorderBrush="{ThemeResource ComboBoxDropDownBorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="4">
                                         <ScrollViewer>
-                                            <ItemsPresenter/>
+                                            <ItemsPresenter />
                                         </ScrollViewer>
                                     </Border>
                                 </Popup>
 
                                 <VisualStateManager.VisualStateGroups>
                                     <VisualStateGroup x:Name="CommonStates">
-                                        <VisualState x:Name="Normal"/>
+                                        <VisualState x:Name="Normal" />
                                         <VisualState x:Name="PointerOver">
                                             <VisualState.Setters>
-                                                <Setter Target="Background.Background" Value="#10000000"/>
+                                                <Setter Target="Background.Background" Value="#10000000" />
                                             </VisualState.Setters>
                                         </VisualState>
                                         <VisualState x:Name="Pressed">
                                             <VisualState.Setters>
-                                                <Setter Target="Background.Background" Value="#18000000"/>
+                                                <Setter Target="Background.Background" Value="#18000000" />
                                             </VisualState.Setters>
                                         </VisualState>
                                     </VisualStateGroup>
