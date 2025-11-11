@@ -54,4 +54,27 @@
     <PublishTrimmed Condition="'$(Configuration)' == 'Debug'">False</PublishTrimmed>
     <PublishTrimmed Condition="'$(Configuration)' != 'Debug'">True</PublishTrimmed>
   </PropertyGroup>
+
+  <!-- Auto-build Milkdown editor before C# build -->
+  <Target Name="BuildMilkdownEditor" BeforeTargets="BeforeBuild">
+    <PropertyGroup>
+    <EditorPath>$(MSBuildProjectDirectory)\Editor</EditorPath>
+      <NodeModulesExists Condition="Exists('$(EditorPath)\node_modules')">true</NodeModulesExists>
+  </PropertyGroup>
+
+  <!-- Install npm packages if node_modules doesn't exist -->
+    <Exec Command="npm install" WorkingDirectory="$(EditorPath)" Condition="'$(NodeModulesExists)' != 'true'" />
+ 
+    <!-- Build the editor -->
+    <Exec Command="npm run build" WorkingDirectory="$(EditorPath)" />
+  
+    <Message Text="Milkdown editor built successfully" Importance="high" />
+  </Target>
+
+  <!-- Include built Milkdown files in the output -->
+  <ItemGroup>
+    <Content Include="Assets\milkdown\**\*.*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
 </Project>
