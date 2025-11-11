@@ -55,8 +55,8 @@ public sealed partial class MainWindow : Window
         {
             rootGrid.KeyDown += RootGrid_KeyDown;
         }
-        
-        _logger.LogDebug("Keyboard shortcuts configured (Ctrl+R = Rename, Ctrl+O = Open)");
+
+        _logger.LogDebug("Keyboard shortcuts configured (Ctrl+R = Rename, Ctrl+O = Open, Ctrl+S = Save)");
     }
 
     private async void RootGrid_KeyDown(object sender, KeyRoutedEventArgs e)
@@ -75,6 +75,12 @@ public sealed partial class MainWindow : Window
             e.Handled = true;
             _logger.LogDebug("Ctrl+O pressed, showing open file dialog");
             await ShowOpenFileDialog();
+        }
+        else if (e.Key == Windows.System.VirtualKey.S && isCtrlPressed)
+        {
+            e.Handled = true;
+            _logger.LogDebug("Ctrl+S pressed, saving file");
+            await SaveFileAsync();
         }
     }
 
@@ -454,6 +460,18 @@ public sealed partial class MainWindow : Window
             await ShowOpenFileDialog();
         menuItems.Add(openItem);
 
+        var saveItem = sender.Environment.CreateContextMenuItem(
+            "Save (Ctrl+S)", null, CoreWebView2ContextMenuItemKind.Command);
+        saveItem.CustomItemSelected += async (s, e) =>
+            await SaveFileAsync();
+        menuItems.Add(saveItem);
+
+        var saveAsItem = sender.Environment.CreateContextMenuItem(
+            "Save As...", null, CoreWebView2ContextMenuItemKind.Command);
+        saveAsItem.CustomItemSelected += async (s, e) =>
+            await SaveFileAsAsync();
+        menuItems.Add(saveAsItem);
+
         var renameItem = sender.Environment.CreateContextMenuItem(
             "Rename File (Ctrl+R)", null, CoreWebView2ContextMenuItemKind.Command);
         renameItem.CustomItemSelected += async (s, e) =>
@@ -700,5 +718,65 @@ public sealed partial class MainWindow : Window
     {
         _currentFileName = fileName;
         UpdateTitle();
+    }
+
+    private async Task SaveFileAsync()
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(_currentFilePath))
+            {
+                await SaveFileAsAsync();
+                return;
+            }
+
+            var content = await GetMarkdownAsync();
+  
+            var file = await Windows.Storage.StorageFile.GetFileFromPathAsync(_currentFilePath);
+            await Windows.Storage.FileIO.WriteTextAsync(file, content);
+        
+            _logger.LogInformation("File saved: {FileName}", _currentFileName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to save file");
+        }
+    }
+
+    private async Task SaveFileAsAsync()
+    {
+        try
+ {
+       var picker = new Windows.Storage.Pickers.FileSavePicker();
+         
+       var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+            WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
+ 
+         picker.SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.DocumentsLibrary;
+ picker.FileTypeChoices.Add("Markdown", new List<string> { ".md" });
+            picker.FileTypeChoices.Add("Text", new List<string> { ".txt" });
+       picker.SuggestedFileName = _currentFileName;
+
+      var file = await picker.PickSaveFileAsync();
+            if (file != null)
+      {
+  var content = await GetMarkdownAsync();
+    await Windows.Storage.FileIO.WriteTextAsync(file, content);
+          
+        _currentFilePath = file.Path;
+                _currentFileName = file.Name;
+  UpdateTitle();
+       
+    _logger.LogInformation("File saved as: {FileName} at {Path}", file.Name, file.Path);
+   }
+ else
+  {
+    _logger.LogDebug("Save as cancelled");
+     }
+ }
+        catch (Exception ex)
+ {
+            _logger.LogError(ex, "Failed to show save file dialog");
+        }
     }
 }
