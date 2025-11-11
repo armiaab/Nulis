@@ -506,14 +506,24 @@ return false;
         return false;
     }
     
-    if (e.ctrlKey && !e.shiftKey && e.key === 'r') {
+    if (e.key === 'F2') {
       e.preventDefault();
         e.stopPropagation();
-   console.log('Ctrl+R detected, sending to C#');
+   console.log('F2 detected, sending to C#');
         if (window.chrome && window.chrome.webview) {
        window.chrome.webview.postMessage({ action: 'rename' });
  }
       return false;
+    }
+
+    if (e.ctrlKey && e.shiftKey && e.key === 'P') {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('Ctrl+Shift+P detected, sending to C#');
+        if (window.chrome && window.chrome.webview) {
+            window.chrome.webview.postMessage({ action: 'commandPalette' });
+        }
+        return false;
     }
 }, true);
 
@@ -524,4 +534,4 @@ document.addEventListener('click', (e) => {
     }
 });
 
-console.log('✓ Keyboard shortcuts handler installed (Ctrl+O, Ctrl+S, Ctrl+Shift+S, Ctrl+R, Slash menu navigation)');
+console.log('✓ Keyboard shortcuts handler installed (Ctrl+O, Ctrl+S, Ctrl+Shift+S, F2, Ctrl+Shift+P, Slash menu navigation)');

@@ -23,17 +23,18 @@ public sealed partial class MainWindow : Window
         _logger = LoggerService.GetLogger<MainWindow>();
 
         InitializeComponent();
-        
+
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(CustomTitleBar);
-        
+        UpdateTitleBarTheme();
+
         SetupKeyboardShortcuts();
-        
+
         if (Content is FrameworkElement content)
         {
             content.ActualThemeChanged += Content_ActualThemeChanged;
         }
-        
+
         UpdateTitle();
         InitializeEditor();
     }
@@ -42,10 +43,52 @@ public sealed partial class MainWindow : Window
     {
         var isDark = sender.ActualTheme == ElementTheme.Dark;
         _logger.LogInformation("Theme changed to: {Theme} (isDark: {IsDark})", sender.ActualTheme, isDark);
-        
+
+        UpdateTitleBarTheme();
+
         if (_isReady)
         {
             await ExecuteScriptSafely($"if(window.setTheme) window.setTheme({(isDark ? "true" : "false")});");
+        }
+    }
+
+    private void UpdateTitleBarTheme()
+    {
+        var isDark = Content is FrameworkElement fe && fe.ActualTheme == ElementTheme.Dark;
+        
+        if (AppWindow.TitleBar is not null)
+        {
+            var titleBar = AppWindow.TitleBar;
+            var transparent = Windows.UI.Color.FromArgb(0, 0, 0, 0);
+            
+            if (isDark)
+            {
+                // Dark theme colors
+                titleBar.ButtonForegroundColor = Windows.UI.Color.FromArgb(255, 255, 255, 255);
+                titleBar.ButtonHoverForegroundColor = Windows.UI.Color.FromArgb(255, 255, 255, 255);
+                titleBar.ButtonPressedForegroundColor = Windows.UI.Color.FromArgb(255, 200, 200, 200);
+                titleBar.ButtonInactiveForegroundColor = Windows.UI.Color.FromArgb(255, 128, 128, 128);
+                
+                titleBar.ButtonBackgroundColor = transparent;
+                titleBar.ButtonHoverBackgroundColor = Windows.UI.Color.FromArgb(255, 60, 60, 60);
+                titleBar.ButtonPressedBackgroundColor = Windows.UI.Color.FromArgb(255, 40, 40, 40);
+                titleBar.ButtonInactiveBackgroundColor = transparent;
+            }
+            else
+            {
+                // Light theme colors
+                titleBar.ButtonForegroundColor = Windows.UI.Color.FromArgb(255, 0, 0, 0);
+                titleBar.ButtonHoverForegroundColor = Windows.UI.Color.FromArgb(255, 0, 0, 0);
+                titleBar.ButtonPressedForegroundColor = Windows.UI.Color.FromArgb(255, 96, 96, 96);
+                titleBar.ButtonInactiveForegroundColor = Windows.UI.Color.FromArgb(255, 128, 128, 128);
+                
+                titleBar.ButtonBackgroundColor = transparent;
+                titleBar.ButtonHoverBackgroundColor = Windows.UI.Color.FromArgb(255, 220, 220, 220);
+                titleBar.ButtonPressedBackgroundColor = Windows.UI.Color.FromArgb(255, 200, 200, 200);
+                titleBar.ButtonInactiveBackgroundColor = transparent;
+            }
+            
+            _logger.LogDebug("Title bar theme updated to: {Theme}", isDark ? "Dark" : "Light");
         }
     }
 
@@ -56,22 +99,28 @@ public sealed partial class MainWindow : Window
             rootGrid.KeyDown += RootGrid_KeyDown;
         }
 
-        _logger.LogDebug("Keyboard shortcuts configured (Ctrl+O = Open, Ctrl+S = Save, Ctrl+Shift+S = Save As, Ctrl+R = Rename)");
+        _logger.LogDebug("Keyboard shortcuts configured (Ctrl+O = Open, Ctrl+S = Save, Ctrl+Shift+S = Save As, F2 = Rename, Ctrl+Shift+P = Command Palette)");
     }
 
     private async void RootGrid_KeyDown(object sender, KeyRoutedEventArgs e)
     {
         var ctrlState = Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(Windows.System.VirtualKey.Control);
         var isCtrlPressed = ctrlState.HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down);
-        
+
         var shiftState = Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(Windows.System.VirtualKey.Shift);
         var isShiftPressed = shiftState.HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down);
-        
-        if (e.Key == Windows.System.VirtualKey.R && isCtrlPressed)
+
+        if (e.Key == Windows.System.VirtualKey.F2)
         {
             e.Handled = true;
-            _logger.LogDebug("Ctrl+R pressed, showing rename dialog");
+            _logger.LogDebug("F2 pressed, showing rename dialog");
             await ShowRenameDialog();
+        }
+        else if (e.Key == Windows.System.VirtualKey.P && isCtrlPressed && isShiftPressed)
+        {
+            e.Handled = true;
+            _logger.LogDebug("Ctrl+Shift+P pressed, showing command palette");
+            await ShowCommandPalette();
         }
         else if (e.Key == Windows.System.VirtualKey.O && isCtrlPressed)
         {
@@ -93,15 +142,114 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    private async Task ShowCommandPalette()
+    {
+        var commands = new List<Controls.CommandItem>
+        {
+            new Controls.CommandItem 
+            { 
+                Name = "Open File", 
+                Description = "Open a markdown or text file",
+                Shortcut = "Ctrl+O", 
+                SearchTerms = new List<string> { "open", "file", "load" },
+                Action = async () => await ShowOpenFileDialog() 
+            },
+            new Controls.CommandItem 
+            { 
+                Name = "Save", 
+                Description = "Save the current file",
+                Shortcut = "Ctrl+S", 
+                SearchTerms = new List<string> { "save", "write" },
+                Action = async () => await SaveFileAsync() 
+            },
+            new Controls.CommandItem 
+            { 
+                Name = "Save As...", 
+                Description = "Save as a new file",
+                Shortcut = "Ctrl+Shift+S", 
+                SearchTerms = new List<string> { "save as", "save new", "export" },
+                Action = async () => await SaveFileAsAsync() 
+            },
+            new Controls.CommandItem 
+            { 
+                Name = "Rename File", 
+                Description = "Rename the current file",
+                Shortcut = "F2", 
+                SearchTerms = new List<string> { "rename", "name" },
+                Action = async () => await ShowRenameDialog() 
+            },
+            new Controls.CommandItem 
+            { 
+                Name = "Undo", 
+                Description = "Undo the last action",
+                Shortcut = "", 
+                SearchTerms = new List<string> { "undo", "revert" },
+                Action = async () => await ExecuteScriptSafely("executeCommand('undo')") 
+            },
+            new Controls.CommandItem 
+            { 
+                Name = "Redo", 
+                Description = "Redo the last undone action",
+                Shortcut = "", 
+                SearchTerms = new List<string> { "redo", "repeat" },
+                Action = async () => await ExecuteScriptSafely("executeCommand('redo')") 
+            },
+            new Controls.CommandItem 
+            { 
+                Name = "Bold", 
+                Description = "Make text bold",
+                Shortcut = "", 
+                SearchTerms = new List<string> { "bold", "strong", "format" },
+                Action = async () => await ExecuteScriptSafely("document.execCommand('bold')") 
+            },
+            new Controls.CommandItem 
+            { 
+                Name = "Italic", 
+                Description = "Make text italic",
+                Shortcut = "", 
+                SearchTerms = new List<string> { "italic", "emphasis", "format" },
+                Action = async () => await ExecuteScriptSafely("document.execCommand('italic')") 
+            },
+            new Controls.CommandItem 
+            { 
+                Name = "Select All", 
+                Description = "Select all text in the editor",
+                Shortcut = "", 
+                SearchTerms = new List<string> { "select", "select all", "all" },
+                Action = async () => await ExecuteScriptSafely("document.execCommand('selectAll')") 
+            }
+        };
+
+        var palette = new Controls.CommandPalette
+        {
+            XamlRoot = this.Content.XamlRoot
+        };
+        
+        palette.SetCommands(commands);
+        await palette.ShowAsync();
+    }
+
+    private class CommandPaletteItem
+    {
+        public string Name { get; set; } = "";
+        public string Shortcut { get; set; } = "";
+        public Func<Task> Action { get; set; } = () => Task.CompletedTask;
+
+        public override string ToString()
+        {
+            return string.IsNullOrEmpty(Shortcut) ? Name : $"{Name} ({Shortcut})";
+        }
+    }
+
     private async Task ShowOpenFileDialog()
     {
         try
         {
             var picker = new Windows.Storage.Pickers.FileOpenPicker();
-            
+
             var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
             WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
-            
+
             picker.ViewMode = Windows.Storage.Pickers.PickerViewMode.List;
             picker.SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.DocumentsLibrary;
             picker.FileTypeFilter.Add(".md");
@@ -131,11 +279,11 @@ public sealed partial class MainWindow : Window
         {
             var content = await Windows.Storage.FileIO.ReadTextAsync(file);
             _logger.LogInformation("File read successfully, content length: {Length}", content.Length);
-            
+
             _currentFilePath = file.Path;
             _currentFileName = file.Name;
             UpdateTitle();
-            
+
             int attempts = 0;
             while (!_isReady && attempts < 100)
             {
@@ -143,17 +291,17 @@ public sealed partial class MainWindow : Window
                 await Task.Delay(100);
                 attempts++;
             }
-            
+
             if (!_isReady)
             {
                 _logger.LogError("Editor not ready after 10 seconds");
                 return;
             }
-            
+
             _logger.LogInformation("Editor is ready, loading content...");
-            
+
             bool success = false;
-            
+
             try
             {
                 await SetMarkdownAsync(content);
@@ -164,7 +312,7 @@ public sealed partial class MainWindow : Window
             {
                 _logger.LogWarning(ex, "Method 1 failed, trying alternative...");
             }
-            
+
             if (!success)
             {
                 try
@@ -180,7 +328,7 @@ public sealed partial class MainWindow : Window
                     _logger.LogError(ex, "Method 2 also failed");
                 }
             }
-            
+
             if (success)
             {
                 _logger.LogInformation("File loaded successfully: {FileName}", file.Name);
@@ -198,6 +346,20 @@ public sealed partial class MainWindow : Window
 
     private async Task ShowRenameDialog()
     {
+        // Can't rename a file that hasn't been saved yet
+        if (string.IsNullOrEmpty(_currentFilePath))
+        {
+            var infoDialog = new ContentDialog
+            {
+                Title = "Cannot Rename",
+                Content = "Please save the file first before renaming.",
+                CloseButtonText = "OK",
+                XamlRoot = this.Content.XamlRoot
+            };
+            await infoDialog.ShowAsync();
+            return;
+        }
+
         var dialog = new ContentDialog
         {
             Title = "Rename File",
@@ -223,22 +385,105 @@ public sealed partial class MainWindow : Window
         if (result == ContentDialogResult.Primary)
         {
             var newFileName = textBox.Text.Trim();
-            
+
             if (string.IsNullOrWhiteSpace(newFileName))
             {
                 _logger.LogWarning("Empty filename entered, keeping current name");
                 return;
             }
 
-            if (!newFileName.EndsWith(".md", StringComparison.OrdinalIgnoreCase))
+            if (!newFileName.EndsWith(".md", StringComparison.OrdinalIgnoreCase) && 
+                !newFileName.EndsWith(".txt", StringComparison.OrdinalIgnoreCase) &&
+                !newFileName.EndsWith(".markdown", StringComparison.OrdinalIgnoreCase))
             {
                 newFileName += ".md";
             }
 
-            _currentFileName = newFileName;
-            UpdateTitle();
-            
-            _logger.LogInformation("File renamed to: {FileName}", _currentFileName);
+            // Don't rename if the name hasn't changed
+            if (newFileName.Equals(_currentFileName, StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogDebug("Filename unchanged, skipping rename");
+                return;
+            }
+
+            // Attempt to rename the actual file
+            try
+            {
+                var oldFile = await Windows.Storage.StorageFile.GetFileFromPathAsync(_currentFilePath);
+                var folder = await oldFile.GetParentAsync();
+                var newPath = Path.Combine(folder.Path, newFileName);
+
+                // Check if a file with the new name already exists
+                if (File.Exists(newPath))
+                {
+                    var conflictDialog = new ContentDialog
+                    {
+                        Title = "File Already Exists",
+                        Content = $"A file named '{newFileName}' already exists in this location. Please choose a different name.",
+                        CloseButtonText = "OK",
+                        XamlRoot = this.Content.XamlRoot
+                    };
+                    await conflictDialog.ShowAsync();
+                    return;
+                }
+
+                // Rename the file
+                await oldFile.RenameAsync(newFileName, Windows.Storage.NameCollisionOption.FailIfExists);
+
+                // Update the current file path and name
+                _currentFilePath = newPath;
+                _currentFileName = newFileName;
+                UpdateTitle();
+
+                _logger.LogInformation("File successfully renamed from '{OldName}' to '{NewName}' at {Path}", 
+                    oldFile.Name, newFileName, newPath);
+
+                // Show success message
+                var successDialog = new ContentDialog
+                {
+                    Title = "File Renamed",
+                    Content = $"File successfully renamed to '{newFileName}'",
+                    CloseButtonText = "OK",
+                    XamlRoot = this.Content.XamlRoot
+                };
+                await successDialog.ShowAsync();
+            }
+            catch (FileNotFoundException)
+            {
+                _logger.LogError("File not found at path: {Path}", _currentFilePath);
+                var errorDialog = new ContentDialog
+                {
+                    Title = "Error",
+                    Content = "The file could not be found. It may have been moved or deleted.",
+                    CloseButtonText = "OK",
+                    XamlRoot = this.Content.XamlRoot
+                };
+                await errorDialog.ShowAsync();
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogError(ex, "Access denied while renaming file");
+                var errorDialog = new ContentDialog
+                {
+                    Title = "Error",
+                    Content = "Access denied. You may not have permission to rename this file.",
+                    CloseButtonText = "OK",
+                    XamlRoot = this.Content.XamlRoot
+                };
+                await errorDialog.ShowAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to rename file");
+                var errorDialog = new ContentDialog
+                {
+                    Title = "Error",
+                    Content = $"Failed to rename file: {ex.Message}",
+                    CloseButtonText = "OK",
+                    XamlRoot = this.Content.XamlRoot
+                };
+                await errorDialog.ShowAsync();
+            }
         }
         else
         {
@@ -256,14 +501,14 @@ public sealed partial class MainWindow : Window
         try
         {
             await EditorWebView.EnsureCoreWebView2Async();
-            
+
             ConfigureWebView2Performance();
-            
+
             EditorWebView.CoreWebView2.ContextMenuRequested += CoreWebView2_ContextMenuRequested;
-            
+
             var appFolder = AppDomain.CurrentDomain.BaseDirectory;
             var htmlPath = Path.Combine(appFolder, "Assets", "milkdown", "index.html");
-            
+
             if (File.Exists(htmlPath))
             {
                 var htmlUri = new Uri($"file:///{htmlPath.Replace("\\", "/")}");
@@ -288,7 +533,7 @@ public sealed partial class MainWindow : Window
         try
         {
             var settings = EditorWebView.CoreWebView2.Settings;
-            
+
             settings.AreDefaultScriptDialogsEnabled = false;
             settings.AreDevToolsEnabled = false;
             settings.IsStatusBarEnabled = false;
@@ -300,9 +545,9 @@ public sealed partial class MainWindow : Window
             settings.AreBrowserAcceleratorKeysEnabled = true;
             settings.IsScriptEnabled = true;
             settings.IsWebMessageEnabled = true;
-            
+
             EditorWebView.CoreWebView2.MemoryUsageTargetLevel = CoreWebView2MemoryUsageTargetLevel.Low;
-            
+
             _logger.LogInformation("WebView2 performance settings configured");
         }
         catch (Exception ex)
@@ -314,21 +559,21 @@ public sealed partial class MainWindow : Window
     private void CoreWebView2_ContextMenuRequested(CoreWebView2 sender, CoreWebView2ContextMenuRequestedEventArgs args)
     {
         var menuItems = args.MenuItems;
-        
+
         _logger.LogDebug("Context menu requested: {Count} items", menuItems.Count);
-        
+
         for (int i = 0; i < menuItems.Count; i++)
         {
             var item = menuItems[i];
-            _logger.LogTrace("[{Index}] Name: '{Name}', Label: '{Label}', Kind: {Kind}", 
+            _logger.LogTrace("[{Index}] Name: '{Name}', Label: '{Label}', Kind: {Kind}",
                 i, item.Name, item.Label, item.Kind);
         }
-        
+
         var hasSpellingSuggestions = false;
         for (int i = 0; i < menuItems.Count; i++)
         {
             var item = menuItems[i];
-            if (item.Label.Contains("suggestion") || 
+            if (item.Label.Contains("suggestion") ||
                 item.Name.Contains("spell") ||
                 item.Label.Contains("Add to") ||
                 (i < 5 && menuItems.Count > 8 && item.Kind == CoreWebView2ContextMenuItemKind.Command))
@@ -346,14 +591,14 @@ public sealed partial class MainWindow : Window
         else
         {
             _logger.LogDebug("Spell-check context detected");
-            
+
             for (int i = menuItems.Count - 1; i >= 0; i--)
             {
                 var item = menuItems[i];
                 var name = item.Name?.ToLower() ?? "";
                 var label = item.Label?.ToLower() ?? "";
-                
-                if (name.Contains("inspect") || 
+
+                if (name.Contains("inspect") ||
                     name.Contains("reload") ||
                     name.Contains("view") ||
                     label.Contains("inspect") ||
@@ -363,11 +608,11 @@ public sealed partial class MainWindow : Window
                     menuItems.RemoveAt(i);
                 }
             }
-            
+
             var separator = sender.Environment.CreateContextMenuItem(
                 "", null, CoreWebView2ContextMenuItemKind.Separator);
             menuItems.Add(separator);
-            
+
             AddCustomMenuItems(sender, menuItems);
         }
     }
@@ -376,9 +621,9 @@ public sealed partial class MainWindow : Window
     {
         var sender = EditorWebView.CoreWebView2;
         var menuItems = args.MenuItems;
-        
+
         menuItems.Clear();
-        
+
         var undoItem = sender.Environment.CreateContextMenuItem(
             "Undo", null, CoreWebView2ContextMenuItemKind.Command);
         undoItem.CustomItemSelected += async (s, e) =>
@@ -463,29 +708,11 @@ public sealed partial class MainWindow : Window
         menuItems.Add(sender.Environment.CreateContextMenuItem(
             "", null, CoreWebView2ContextMenuItemKind.Separator));
 
-        var openItem = sender.Environment.CreateContextMenuItem(
-            "Open File (Ctrl+O)", null, CoreWebView2ContextMenuItemKind.Command);
-        openItem.CustomItemSelected += async (s, e) =>
-            await ShowOpenFileDialog();
-        menuItems.Add(openItem);
-
-        var saveItem = sender.Environment.CreateContextMenuItem(
-            "Save (Ctrl+S)", null, CoreWebView2ContextMenuItemKind.Command);
-        saveItem.CustomItemSelected += async (s, e) =>
-            await SaveFileAsync();
-        menuItems.Add(saveItem);
-
-        var saveAsItem = sender.Environment.CreateContextMenuItem(
-            "Save As... (Ctrl+Shift+S)", null, CoreWebView2ContextMenuItemKind.Command);
-        saveAsItem.CustomItemSelected += async (s, e) =>
-            await SaveFileAsAsync();
-        menuItems.Add(saveAsItem);
-
-        var renameItem = sender.Environment.CreateContextMenuItem(
-            "Rename File (Ctrl+R)", null, CoreWebView2ContextMenuItemKind.Command);
-        renameItem.CustomItemSelected += async (s, e) =>
-            await ShowRenameDialog();
-        menuItems.Add(renameItem);
+        var commandPaletteItem = sender.Environment.CreateContextMenuItem(
+            "Command Palette (Ctrl+Shift+P)", null, CoreWebView2ContextMenuItemKind.Command);
+        commandPaletteItem.CustomItemSelected += async (s, e) =>
+            await ShowCommandPalette();
+        menuItems.Add(commandPaletteItem);
     }
 
     private async void OnNavigationCompleted(WebView2 sender, CoreWebView2NavigationCompletedEventArgs args)
@@ -498,7 +725,7 @@ public sealed partial class MainWindow : Window
             }
             return;
         }
-        
+
         _isReady = true;
         _logger.LogInformation("Editor navigation completed, setting ready flag");
 
@@ -509,9 +736,9 @@ public sealed partial class MainWindow : Window
         try
         {
             await ExecuteScriptSafely("if(window.forceSpellcheck) window.forceSpellcheck();");
-            
+
             await Task.Delay(200);
-            
+
             await ExecuteScriptSafely(@"
                     if(window.forceSpellcheck) window.forceSpellcheck();
                     
@@ -536,7 +763,7 @@ public sealed partial class MainWindow : Window
 
             var isDark = Content is FrameworkElement fe && fe.ActualTheme == ElementTheme.Dark;
             await ExecuteScriptSafely($"if(window.setTheme) window.setTheme({(isDark ? "true" : "false")});");
-            
+
             _logger.LogInformation("Milkdown editor fully initialized and ready with theme: {IsDark}", isDark);
         }
         catch (Exception ex)
@@ -578,6 +805,9 @@ public sealed partial class MainWindow : Window
                     break;
                 case "pickImage":
                     await ShowImagePickerDialog();
+                    break;
+                case "commandPalette":
+                    await ShowCommandPalette();
                     break;
                 default:
                     _logger.LogWarning("Unknown action: {Action}", actionValue);
@@ -634,38 +864,38 @@ public sealed partial class MainWindow : Window
         {
             var buffer = await Windows.Storage.FileIO.ReadBufferAsync(file);
             var bytes = new byte[buffer.Length];
-        using (var reader = Windows.Storage.Streams.DataReader.FromBuffer(buffer))
-        {
-       reader.ReadBytes(bytes);
-     }
-
- var base64 = Convert.ToBase64String(bytes);
- 
-        var extension = file.FileType.ToLower();
-   var mimeType = extension switch
+            using (var reader = Windows.Storage.Streams.DataReader.FromBuffer(buffer))
             {
-             ".png" => "image/png",
+                reader.ReadBytes(bytes);
+            }
+
+            var base64 = Convert.ToBase64String(bytes);
+
+            var extension = file.FileType.ToLower();
+            var mimeType = extension switch
+            {
+                ".png" => "image/png",
                 ".jpg" or ".jpeg" => "image/jpeg",
-       ".gif" => "image/gif",
-     ".bmp" => "image/bmp",
-      ".svg" => "image/svg+xml",
-    ".webp" => "image/webp",
-    _ => "image/png"
-    };
+                ".gif" => "image/gif",
+                ".bmp" => "image/bmp",
+                ".svg" => "image/svg+xml",
+                ".webp" => "image/webp",
+                _ => "image/png"
+            };
 
             var dataUrl = $"data:{mimeType};base64,{base64}";
-  
-     var escapedFileName = System.Text.Json.JsonSerializer.Serialize(file.Name);
-var escapedDataUrl = System.Text.Json.JsonSerializer.Serialize(dataUrl);
+
+            var escapedFileName = System.Text.Json.JsonSerializer.Serialize(file.Name);
+            var escapedDataUrl = System.Text.Json.JsonSerializer.Serialize(dataUrl);
 
             var script = $"if(window.onImagePicked) window.onImagePicked({escapedDataUrl}, {escapedFileName});";
-      await ExecuteScriptSafely(script);
-     
+            await ExecuteScriptSafely(script);
+
             _logger.LogInformation("Image processed and sent to editor: {FileName}, size: {Size} bytes", file.Name, bytes.Length);
         }
         catch (Exception ex)
-  {
-         _logger.LogError(ex, "Failed to process image file");
+        {
+            _logger.LogError(ex, "Failed to process image file");
             await ExecuteScriptSafely("if(window.onImagePicked) window.onImagePicked(null, null);");
         }
     }
@@ -689,7 +919,7 @@ var escapedDataUrl = System.Text.Json.JsonSerializer.Serialize(dataUrl);
             _logger.LogWarning("GetMarkdownAsync called before editor is ready");
             return "";
         }
-        
+
         try
         {
             var result = await EditorWebView.ExecuteScriptAsync("getMarkdown()");
@@ -739,10 +969,10 @@ var escapedDataUrl = System.Text.Json.JsonSerializer.Serialize(dataUrl);
             }
 
             var content = await GetMarkdownAsync();
-  
+
             var file = await Windows.Storage.StorageFile.GetFileFromPathAsync(_currentFilePath);
             await Windows.Storage.FileIO.WriteTextAsync(file, content);
-        
+
             _logger.LogInformation("File saved: {FileName}", _currentFileName);
         }
         catch (Exception ex)
@@ -754,36 +984,36 @@ var escapedDataUrl = System.Text.Json.JsonSerializer.Serialize(dataUrl);
     private async Task SaveFileAsAsync()
     {
         try
- {
-       var picker = new Windows.Storage.Pickers.FileSavePicker();
-         
-       var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
-            WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
- 
-         picker.SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.DocumentsLibrary;
- picker.FileTypeChoices.Add("Markdown", new List<string> { ".md" });
-            picker.FileTypeChoices.Add("Text", new List<string> { ".txt" });
-       picker.SuggestedFileName = _currentFileName;
+        {
+            var picker = new Windows.Storage.Pickers.FileSavePicker();
 
-      var file = await picker.PickSaveFileAsync();
+            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+            WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
+
+            picker.SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.DocumentsLibrary;
+            picker.FileTypeChoices.Add("Markdown", new List<string> { ".md" });
+            picker.FileTypeChoices.Add("Text", new List<string> { ".txt" });
+            picker.SuggestedFileName = _currentFileName;
+
+            var file = await picker.PickSaveFileAsync();
             if (file != null)
-      {
-  var content = await GetMarkdownAsync();
-    await Windows.Storage.FileIO.WriteTextAsync(file, content);
-          
-        _currentFilePath = file.Path;
+            {
+                var content = await GetMarkdownAsync();
+                await Windows.Storage.FileIO.WriteTextAsync(file, content);
+
+                _currentFilePath = file.Path;
                 _currentFileName = file.Name;
-  UpdateTitle();
-       
-    _logger.LogInformation("File saved as: {FileName} at {Path}", file.Name, file.Path);
-   }
- else
-  {
-    _logger.LogDebug("Save as cancelled");
-     }
- }
+                UpdateTitle();
+
+                _logger.LogInformation("File saved as: {FileName} at {Path}", file.Name, file.Path);
+            }
+            else
+            {
+                _logger.LogDebug("Save as cancelled");
+            }
+        }
         catch (Exception ex)
- {
+        {
             _logger.LogError(ex, "Failed to show save file dialog");
         }
     }
