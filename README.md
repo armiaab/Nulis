@@ -1,24 +1,24 @@
-# Nulis
+﻿# Nulis
 
 A fast, lightweight, and distraction-free WYSIWYG markdown editor for Windows.
 
 ![Dark Theme](docs/dark.png)
 ![Light Theme](docs/light.png)
 
-## ? Features
+## ✨ Features
 
-- ?? **Beautiful WYSIWYG Editor** - See your markdown rendered as you type
-- ?? **Dark & Light Themes** - Automatically follows your Windows theme
-- ? **Lightning Fast** - Built with performance in mind
-- ?? **Distraction-Free** - Clean, minimal interface
-- ?? **Full Markdown Support** - CommonMark + GitHub Flavored Markdown
-- ??? **Image Support** - Drag & drop or paste images
-- ?? **Keyboard Shortcuts** - Quick access to all features
-- ?? **Auto-Save Tracking** - Never lose your work
-- ?? **Spell Check** - Built-in spell checking
-- ?? **Command Palette** - Quick access to all features (Ctrl+Shift+P)
+- 🎨 **Beautiful WYSIWYG Editor** - See your markdown rendered as you type
+- 🌓 **Dark & Light Themes** - Automatically follows your Windows theme
+- ⚡ **Lightning Fast** - Built with performance in mind
+- 🎯 **Distraction-Free** - Clean, minimal interface
+- 📝 **Full Markdown Support** - CommonMark + GitHub Flavored Markdown
+- 🖼️ **Image Support** - Drag & drop or paste images
+- ⌨️ **Keyboard Shortcuts** - Quick access to all features
+- 💾 **Auto-Save Tracking** - Never lose your work
+- 🎨 **Spell Check** - Built-in spell checking
+- 🔍 **Command Palette** - Quick access to all features (Ctrl+Shift+P)
 
-## ?? Getting Started
+## 🚀 Getting Started
 
 ### Download & Install
 
@@ -44,7 +44,7 @@ A fast, lightweight, and distraction-free WYSIWYG markdown editor for Windows.
 - **Runtime**: .NET 8.0 Runtime (automatically included in releases)
 - **Additional**: WebView2 Runtime (automatically installed with Windows 11, or [download here](https://developer.microsoft.com/en-us/microsoft-edge/webview2/))
 
-## ?? How to Use
+## 📖 How to Use
 
 ### Basic Operations
 
@@ -73,7 +73,7 @@ A fast, lightweight, and distraction-free WYSIWYG markdown editor for Windows.
 ### Working with Images
 
 1. **Drag & Drop** - Drag an image file into the editor
-2. **Command** - Use Command Palette (`Ctrl+Shift+P`) ? "Pick Image"
+2. **Command** - Use Command Palette (`Ctrl+Shift+P`) → "Pick Image"
 3. **Markdown** - Type `![alt text](image.png)`
 
 ### Opening Files
@@ -82,7 +82,7 @@ A fast, lightweight, and distraction-free WYSIWYG markdown editor for Windows.
 - **Drag & drop** a markdown file onto Nulis
 - **Command line**: `Nulis.exe "path\to\file.md"`
 
-## ??? Building from Source
+## 🛠️ Building from Source
 
 ### Prerequisites
 
@@ -128,14 +128,14 @@ git checkout production
 dotnet publish Nulis\Nulis.csproj -c Release -p:Platform=x64
 ```
 
-## ?? Building Releases
+## 📦 Building Releases
 
 For detailed instructions on creating production builds and releases, see:
 - **Production builds**: Switch to the `production` branch
 - **Publishing guide**: See `QUICK-PUBLISH.md` on the production branch
 - **Automated script**: Use `publish-production.ps1` on the production branch
 
-## ?? Contributing
+## 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
@@ -149,26 +149,26 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 **Note**: The `production` branch is for optimized releases only. Always develop on `master`.
 
-## ?? Project Structure
+## 📝 Project Structure
 
 ```
 Nulis/
-??? Nulis/      # Main WinUI 3 application
-?   ??? Assets/   # Images and resources
-?   ?   ??? milkdown/        # Built editor files
-?   ??? Controls/            # Custom controls
-?   ??? Services/            # Application services
-?   ??? Editor/          # Milkdown editor source
-?   ?   ??? src/            # TypeScript source
-?   ?   ??? package.json    # Node dependencies
-?   ??? App.xaml.cs# Application entry point
-?   ??? MainWindow.xaml.cs  # Main window logic
-?   ??? Nulis.csproj        # Project file
-??? publish-production.ps1   # Production build script (production branch)
-??? README.md            # This file
+├── Nulis/      # Main WinUI 3 application
+│   ├── Assets/   # Images and resources
+│   │   └── milkdown/        # Built editor files
+│   ├── Controls/            # Custom controls
+│   ├── Services/            # Application services
+│   ├── Editor/          # Milkdown editor source
+│   │   ├── src/            # TypeScript source
+│   │   └── package.json    # Node dependencies
+│   ├── App.xaml.cs# Application entry point
+│   ├── MainWindow.xaml.cs  # Main window logic
+│   └── Nulis.csproj        # Project file
+├── publish-production.ps1   # Production build script (production branch)
+└── README.md            # This file
 ```
 
-## ?? Technologies Used
+## 🔧 Technologies Used
 
 - **WinUI 3** - Modern Windows UI framework
 - **.NET 8** - Application runtime
@@ -176,13 +176,13 @@ Nulis/
 - **Milkdown** - Markdown WYSIWYG editor
 - **ProseMirror** - Text editing framework
 
-## ? FAQ
+## ❓ FAQ
 
 ### Why can't I open certain file types?
 Nulis supports `.md`, `.markdown`, and `.txt` files only.
 
 ### How do I set Nulis as my default markdown editor?
-Right-click a `.md` file ? Open with ? Choose another app ? Select Nulis ? Check "Always use this app"
+Right-click a `.md` file → Open with → Choose another app → Select Nulis → Check "Always use this app"
 
 ### Does Nulis work offline?
 Yes! Nulis is a fully offline application.
@@ -193,27 +193,25 @@ Files are saved wherever you choose. Nulis doesn't store files in a special loca
 ### Can I use Nulis on macOS or Linux?
 Currently, Nulis is Windows-only due to WinUI 3. Cross-platform support may come in the future.
 
-## ?? Known Issues & Limitations
+## 🐛 Known Issues & Limitations
 
 - File must be saved before renaming
 - Large files (>10MB) may load slowly
 - Some advanced markdown features may not render perfectly
 
-## ?? License
+## 📄 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## ?? Acknowledgments
+## 🙏 Acknowledgments
 
 - [Milkdown](https://milkdown.dev/) - Beautiful markdown editor component
 - [ProseMirror](https://prosemirror.net/) - Powerful editing framework
 - [WinUI 3](https://docs.microsoft.com/windows/apps/winui/) - Modern Windows UI
 
-## ?? Support
+## 📞 Support
 
 - **Issues**: [GitHub Issues](https://github.com/armiaab/Nulis/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/armiaab/Nulis/discussions)
 
 ---
-
-Made with ?? for markdown lovers
