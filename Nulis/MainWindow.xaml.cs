@@ -56,13 +56,16 @@ public sealed partial class MainWindow : Window
             rootGrid.KeyDown += RootGrid_KeyDown;
         }
 
-        _logger.LogDebug("Keyboard shortcuts configured (Ctrl+R = Rename, Ctrl+O = Open, Ctrl+S = Save)");
+        _logger.LogDebug("Keyboard shortcuts configured (Ctrl+O = Open, Ctrl+S = Save, Ctrl+Shift+S = Save As, Ctrl+R = Rename)");
     }
 
     private async void RootGrid_KeyDown(object sender, KeyRoutedEventArgs e)
     {
         var ctrlState = Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(Windows.System.VirtualKey.Control);
         var isCtrlPressed = ctrlState.HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down);
+        
+        var shiftState = Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(Windows.System.VirtualKey.Shift);
+        var isShiftPressed = shiftState.HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down);
         
         if (e.Key == Windows.System.VirtualKey.R && isCtrlPressed)
         {
@@ -75,6 +78,12 @@ public sealed partial class MainWindow : Window
             e.Handled = true;
             _logger.LogDebug("Ctrl+O pressed, showing open file dialog");
             await ShowOpenFileDialog();
+        }
+        else if (e.Key == Windows.System.VirtualKey.S && isCtrlPressed && isShiftPressed)
+        {
+            e.Handled = true;
+            _logger.LogDebug("Ctrl+Shift+S pressed, showing save as dialog");
+            await SaveFileAsAsync();
         }
         else if (e.Key == Windows.System.VirtualKey.S && isCtrlPressed)
         {
@@ -467,7 +476,7 @@ public sealed partial class MainWindow : Window
         menuItems.Add(saveItem);
 
         var saveAsItem = sender.Environment.CreateContextMenuItem(
-            "Save As...", null, CoreWebView2ContextMenuItemKind.Command);
+            "Save As... (Ctrl+Shift+S)", null, CoreWebView2ContextMenuItemKind.Command);
         saveAsItem.CustomItemSelected += async (s, e) =>
             await SaveFileAsAsync();
         menuItems.Add(saveAsItem);
@@ -561,6 +570,12 @@ public sealed partial class MainWindow : Window
                 case "rename":
                     await ShowRenameDialog();
                     break;
+                case "save":
+                    await SaveFileAsync();
+                    break;
+                case "saveAs":
+                    await SaveFileAsAsync();
+                    break;
                 case "pickImage":
                     await ShowImagePickerDialog();
                     break;
@@ -603,7 +618,6 @@ public sealed partial class MainWindow : Window
             else
             {
                 _logger.LogDebug("Image picker cancelled");
-                // Call JavaScript with null to indicate cancellation
                 await ExecuteScriptSafely("if(window.onImagePicked) window.onImagePicked(null, null);");
             }
         }
@@ -618,46 +632,40 @@ public sealed partial class MainWindow : Window
     {
         try
         {
-            // Read the file as bytes
             var buffer = await Windows.Storage.FileIO.ReadBufferAsync(file);
             var bytes = new byte[buffer.Length];
-            using (var reader = Windows.Storage.Streams.DataReader.FromBuffer(buffer))
-            {
-                reader.ReadBytes(bytes);
-            }
+        using (var reader = Windows.Storage.Streams.DataReader.FromBuffer(buffer))
+        {
+       reader.ReadBytes(bytes);
+     }
 
-            // Convert to Base64
-            var base64 = Convert.ToBase64String(bytes);
+ var base64 = Convert.ToBase64String(bytes);
  
-            // Determine MIME type
-            var extension = file.FileType.ToLower();
-            var mimeType = extension switch
+        var extension = file.FileType.ToLower();
+   var mimeType = extension switch
             {
-                ".png" => "image/png",
+             ".png" => "image/png",
                 ".jpg" or ".jpeg" => "image/jpeg",
-                ".gif" => "image/gif",
-                ".bmp" => "image/bmp",
-                ".svg" => "image/svg+xml",
-                ".webp" => "image/webp",
-                _ => "image/png"
-            };
+       ".gif" => "image/gif",
+     ".bmp" => "image/bmp",
+      ".svg" => "image/svg+xml",
+    ".webp" => "image/webp",
+    _ => "image/png"
+    };
 
-            // Create data URL
             var dataUrl = $"data:{mimeType};base64,{base64}";
   
-            // Escape the filename and dataUrl for JavaScript
-            var escapedFileName = System.Text.Json.JsonSerializer.Serialize(file.Name);
-            var escapedDataUrl = System.Text.Json.JsonSerializer.Serialize(dataUrl);
+     var escapedFileName = System.Text.Json.JsonSerializer.Serialize(file.Name);
+var escapedDataUrl = System.Text.Json.JsonSerializer.Serialize(dataUrl);
 
-            // Call JavaScript function to insert the image
             var script = $"if(window.onImagePicked) window.onImagePicked({escapedDataUrl}, {escapedFileName});";
-            await ExecuteScriptSafely(script);
+      await ExecuteScriptSafely(script);
      
             _logger.LogInformation("Image processed and sent to editor: {FileName}, size: {Size} bytes", file.Name, bytes.Length);
         }
         catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to process image file");
+  {
+         _logger.LogError(ex, "Failed to process image file");
             await ExecuteScriptSafely("if(window.onImagePicked) window.onImagePicked(null, null);");
         }
     }

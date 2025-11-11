@@ -5,6 +5,7 @@ import { nord } from '@milkdown/theme-nord';
 import { listener, listenerCtx } from '@milkdown/plugin-listener';
 import { history } from '@milkdown/plugin-history';
 import { replaceAll } from '@milkdown/utils';
+import { serializerCtx } from '@milkdown/core';
 
 import '@milkdown/theme-nord/style.css';
 
@@ -14,13 +15,12 @@ let slashMenuItems = [];
 let selectedSlashIndex = 0;
 let slashTriggerPos = null;
 
-// SVG Icons for slash menu
 const slashIcons = {
     h1: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <path d="M4 12h8M4 18V6M12 18V6M17 12h3M17 18V6"/>
     </svg>`,
     h2: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M4 12h8M4 18V6M12 18V6M17 12h3M17 18v-5a2 2 0 012-2 2 2 0 012 2v5"/>
+   <path d="M4 12h8M4 18V6M12 18V6M17 12h3M17 18v-5a2 2 0 012-2 2 2 0 012 2v5"/>
     </svg>`,
     h3: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M4 12h8M4 18V6M12 18V6M17 10a2 2 0 012-2 2 2 0 012 2v1a2 2 0 01-2 2 2 2 0 012 2v1a2 2 0 01-2 2 2 2 0 01-2-2"/>
@@ -31,25 +31,25 @@ const slashIcons = {
     </svg>`,
     orderedList: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/>
-        <path d="M3 5h2v4M3 13h2v4M3 17h4"/>
+  <path d="M3 5h2v4M3 13h2v4M3 17h4"/>
     </svg>`,
     blockquote: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
     <path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"/>
-        <path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/>
+      <path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/>
     </svg>`,
     codeBlock: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
     </svg>`,
-    hr: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+ hr: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <line x1="3" y1="12" x2="21" y2="12"/>
     </svg>`,
     table: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/>
+     <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/>
         <line x1="3" y1="15" x2="21" y2="15"/><line x1="12" y1="3" x2="12" y2="21"/>
-    </svg>`,
-    image: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+  </svg>`,
+ image: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
-        <polyline points="21 15 16 10 5 21"/>
+  <polyline points="21 15 16 10 5 21"/>
     </svg>`
 };
 
@@ -204,38 +204,32 @@ async function insertElement(command) {
         
             editorInstance.action((ctx) => {
   const view = ctx.get(editorViewCtx);
-      const { state, dispatch } = view;
+  const { state, dispatch } = view;
     const { schema } = state;
     
-    // Delete the "/" and insert image at that position
      let tr = state.tr.delete(slashTriggerPos, slashTriggerPos + 1);
          const node = schema.nodes.image.create({
      src: imageData.src,
         alt: imageData.alt || 'image',
-            title: imageData.title || ''
+  title: imageData.title || ''
    });
  
-    // Insert at the slash position (which is now empty after delete)
 tr = tr.insert(slashTriggerPos, node);
         dispatch(tr);
-            });
+      });
         } else {
        editorInstance.action((ctx) => {
-              const view = ctx.get(editorViewCtx);
-        const { state, dispatch } = view;
-                const { schema } = state;
+     const view = ctx.get(editorViewCtx);
+   const { state, dispatch } = view;
+   const { schema } = state;
   
-                // Get current position info
-     const { $from } = state.selection;
-                
-       // Start fresh transaction
-                let tr = state.tr;
-         
- // Delete the "/" character first
+    const { $from } = state.selection;
+       
+ let tr = state.tr;
+
     tr = tr.delete(slashTriggerPos, slashTriggerPos + 1);
      
-      // Create the node
-       let node;
+      let node;
     switch (command) {
         case 'h1':
      case 'h2':
@@ -284,30 +278,24 @@ tr = tr.insert(slashTriggerPos, node);
        }
         
          if (node) {
-         // Get the position in the updated doc (after deleting /)
  const $pos = tr.doc.resolve(slashTriggerPos);
       const parent = $pos.parent;
         
-        // If we're in an empty paragraph, replace it entirely
      if (parent.type.name === 'paragraph' && parent.content.size === 0) {
-        // Get paragraph boundaries
-    const start = $pos.before();
+  const start = $pos.before();
         const end = $pos.after();
          
-        // Replace the entire empty paragraph with our new node
-           tr = tr.replaceWith(start, end, node);
+    tr = tr.replaceWith(start, end, node);
        
-  // Position cursor inside new node (except hr)
    if (command !== 'hr') {
       const newPos = start + 1;
       tr = tr.setSelection(state.selection.constructor.near(tr.doc.resolve(newPos)));
           }
        } else {
- // Insert inline or at current position
-             tr = tr.insert(slashTriggerPos, node);
-           
+     tr = tr.insert(slashTriggerPos, node);
+     
   if (command !== 'hr') {
-        const newPos = slashTriggerPos + 1;
+  const newPos = slashTriggerPos + 1;
         tr = tr.setSelection(state.selection.constructor.near(tr.doc.resolve(newPos)));
             }
    }
@@ -358,45 +346,40 @@ async function createEditor() {
 
         console.log('✓ Milkdown editor created successfully');
         
-        // Create slash menu
         createSlashMenu();
         
-        // Set up input handler for slash command
-        setTimeout(() => {
+    setTimeout(() => {
             const prosemirror = document.querySelector('.ProseMirror');
         if (prosemirror) {
   prosemirror.setAttribute('spellcheck', 'true');
      prosemirror.spellcheck = true;
-     console.log('✓ Spellcheck enabled on ProseMirror');
+  console.log('✓ Spellcheck enabled on ProseMirror');
     
-          // Add keyup listener for slash - trigger menu immediately
-                prosemirror.addEventListener('keyup', (e) => {
+   prosemirror.addEventListener('keyup', (e) => {
   if (e.key === '/') {
-          editorInstance.action((ctx) => {
+ editorInstance.action((ctx) => {
   const view = ctx.get(editorViewCtx);
-            const { state } = view;
+   const { state } = view;
      const { selection } = state;
       const { $from } = selection;
           
-      // Check if the last character is /
    const text = $from.parent.textContent;
-              const charBefore = text[$from.parentOffset - 1];
+     const charBefore = text[$from.parentOffset - 1];
      
-          if (charBefore === '/') {
-      slashTriggerPos = $from.pos - 1;
+ if (charBefore === '/') {
+    slashTriggerPos = $from.pos - 1;
  const coords = view.coordsAtPos($from.pos);
     showSlashMenu(coords.left, coords.top);
        }
        });
     } else if (isSlashMenuVisible() && 
-          e.key !== 'ArrowUp' && 
-              e.key !== 'ArrowDown' && 
-             e.key !== 'Enter' && 
+     e.key !== 'ArrowUp' && 
+   e.key !== 'ArrowDown' && 
+     e.key !== 'Enter' && 
   e.key !== 'Escape' &&
-      e.key !== 'Shift' &&
+ e.key !== 'Shift' &&
 e.key !== 'Control' &&
-         e.key !== 'Alt') {
-       // User typed a regular character - close menu but keep the /
+      e.key !== 'Alt') {
     hideSlashMenu();
        slashTriggerPos = null;
       }
@@ -413,20 +396,21 @@ createEditor();
 
 window.getMarkdown = () => {
     if (!editorInstance) {
-  console.warn('getMarkdown called but editor not ready');
+        console.warn('getMarkdown called but editor not ready');
         return '';
     }
     try {
-        const view = editorInstance.action((ctx) => {
-          return ctx.get(editorViewCtx);
+    const markdown = editorInstance.action((ctx) => {
+            const view = ctx.get(editorViewCtx);
+            const serializer = ctx.get(serializerCtx);
+        return serializer(view.state.doc);
         });
-      
-   const markdown = view.state.doc.textContent || '';
+        
         console.log('getMarkdown returning:', markdown.substring(0, 100) + '...');
         return markdown;
     } catch (e) {
-     console.error('getMarkdown error:', e);
-        return '';
+        console.error('getMarkdown error:', e);
+      return '';
     }
 };
 
@@ -465,35 +449,36 @@ window.setTheme = (isDark) => {
 
 document.addEventListener('keydown', (e) => {
     if (isSlashMenuVisible()) {
-        if (e.key === 'ArrowDown') {
-        e.preventDefault();
+      if (e.key === 'ArrowDown') {
+  e.preventDefault();
     e.stopPropagation();
    updateSlashSelection(selectedSlashIndex + 1);
   return false;
-        }
+ }
 if (e.key === 'ArrowUp') {
-            e.preventDefault();
+       e.preventDefault();
  e.stopPropagation();
     updateSlashSelection(selectedSlashIndex - 1);
     return false;
   }
    if (e.key === 'Enter') {
-      e.preventDefault();
+    e.preventDefault();
      e.stopPropagation();
  executeSelectedSlashItem();
    return false;
-        }
+ }
     if (e.key === 'Escape') {
-            e.preventDefault();
-            e.stopPropagation();
-            hideSlashMenu();
-            slashTriggerPos = null;
+ e.preventDefault();
+   e.stopPropagation();
+    hideSlashMenu();
+     slashTriggerPos = null;
   return false;
 }
     }
     
     if (e.ctrlKey && e.key === 'o') {
         e.preventDefault();
+  e.stopPropagation();
   console.log('Ctrl+O detected, sending to C#');
         if (window.chrome && window.chrome.webview) {
   window.chrome.webview.postMessage({ action: 'open' });
@@ -501,22 +486,42 @@ if (e.key === 'ArrowUp') {
 return false;
     }
     
+    if (e.ctrlKey && e.shiftKey && e.key === 'S') {
+    e.preventDefault();
+        e.stopPropagation();
+        console.log('Ctrl+Shift+S detected, sending to C#');
+        if (window.chrome && window.chrome.webview) {
+          window.chrome.webview.postMessage({ action: 'saveAs' });
+  }
+      return false;
+    }
+    
+    if (e.ctrlKey && e.key === 's') {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('Ctrl+S detected, sending to C#');
+        if (window.chrome && window.chrome.webview) {
+         window.chrome.webview.postMessage({ action: 'save' });
+ }
+        return false;
+    }
+    
     if (e.ctrlKey && !e.shiftKey && e.key === 'r') {
       e.preventDefault();
+        e.stopPropagation();
    console.log('Ctrl+R detected, sending to C#');
         if (window.chrome && window.chrome.webview) {
-            window.chrome.webview.postMessage({ action: 'rename' });
+       window.chrome.webview.postMessage({ action: 'rename' });
  }
       return false;
     }
 }, true);
 
-// Click outside to close
 document.addEventListener('click', (e) => {
     if (isSlashMenuVisible() && !slashMenu.contains(e.target)) {
-        hideSlashMenu();
+ hideSlashMenu();
       slashTriggerPos = null;
     }
 });
 
-console.log('✓ Keyboard shortcuts handler installed (Ctrl+O, Ctrl+R, Slash menu navigation)');
+console.log('✓ Keyboard shortcuts handler installed (Ctrl+O, Ctrl+S, Ctrl+Shift+S, Ctrl+R, Slash menu navigation)');
