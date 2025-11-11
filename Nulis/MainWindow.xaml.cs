@@ -18,6 +18,12 @@ public sealed partial class MainWindow : Window
     private string _currentFileName = "Untitled.md";
     private string? _currentFilePath;
 
+    // File state tracking
+    private bool _hasUnsavedChanges = false;
+    private string _lastSavedContent = "";
+    private bool _isFileModified = false;
+    private DispatcherTimer? _contentCheckTimer;
+
     public MainWindow()
     {
         _logger = LoggerService.GetLogger<MainWindow>();
@@ -55,12 +61,12 @@ public sealed partial class MainWindow : Window
     private void UpdateTitleBarTheme()
     {
         var isDark = Content is FrameworkElement fe && fe.ActualTheme == ElementTheme.Dark;
-        
+
         if (AppWindow.TitleBar is not null)
         {
             var titleBar = AppWindow.TitleBar;
             var transparent = Windows.UI.Color.FromArgb(0, 0, 0, 0);
-            
+
             if (isDark)
             {
                 // Dark theme colors
@@ -68,7 +74,7 @@ public sealed partial class MainWindow : Window
                 titleBar.ButtonHoverForegroundColor = Windows.UI.Color.FromArgb(255, 255, 255, 255);
                 titleBar.ButtonPressedForegroundColor = Windows.UI.Color.FromArgb(255, 200, 200, 200);
                 titleBar.ButtonInactiveForegroundColor = Windows.UI.Color.FromArgb(255, 128, 128, 128);
-                
+
                 titleBar.ButtonBackgroundColor = transparent;
                 titleBar.ButtonHoverBackgroundColor = Windows.UI.Color.FromArgb(255, 60, 60, 60);
                 titleBar.ButtonPressedBackgroundColor = Windows.UI.Color.FromArgb(255, 40, 40, 40);
@@ -81,13 +87,13 @@ public sealed partial class MainWindow : Window
                 titleBar.ButtonHoverForegroundColor = Windows.UI.Color.FromArgb(255, 0, 0, 0);
                 titleBar.ButtonPressedForegroundColor = Windows.UI.Color.FromArgb(255, 96, 96, 96);
                 titleBar.ButtonInactiveForegroundColor = Windows.UI.Color.FromArgb(255, 128, 128, 128);
-                
+
                 titleBar.ButtonBackgroundColor = transparent;
                 titleBar.ButtonHoverBackgroundColor = Windows.UI.Color.FromArgb(255, 220, 220, 220);
                 titleBar.ButtonPressedBackgroundColor = Windows.UI.Color.FromArgb(255, 200, 200, 200);
                 titleBar.ButtonInactiveBackgroundColor = transparent;
             }
-            
+
             _logger.LogDebug("Title bar theme updated to: {Theme}", isDark ? "Dark" : "Light");
         }
     }
@@ -99,7 +105,7 @@ public sealed partial class MainWindow : Window
             rootGrid.KeyDown += RootGrid_KeyDown;
         }
 
-        _logger.LogDebug("Keyboard shortcuts configured (Ctrl+O = Open, Ctrl+S = Save, Ctrl+Shift+S = Save As, F2 = Rename, Ctrl+Shift+P = Command Palette)");
+        _logger.LogDebug("Keyboard shortcuts configured (Ctrl+N = New File, Ctrl+O = Open, Ctrl+S = Save, Ctrl+Shift+S = Save As, F2 = Rename, Ctrl+Shift+P = Command Palette)");
     }
 
     private async void RootGrid_KeyDown(object sender, KeyRoutedEventArgs e)
@@ -110,7 +116,13 @@ public sealed partial class MainWindow : Window
         var shiftState = Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(Windows.System.VirtualKey.Shift);
         var isShiftPressed = shiftState.HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down);
 
-        if (e.Key == Windows.System.VirtualKey.F2)
+        if (e.Key == Windows.System.VirtualKey.N && isCtrlPressed)
+        {
+            e.Handled = true;
+            _logger.LogDebug("Ctrl+N pressed, creating new file");
+            await CreateNewFile();
+        }
+        else if (e.Key == Windows.System.VirtualKey.F2)
         {
             e.Handled = true;
             _logger.LogDebug("F2 pressed, showing rename dialog");
@@ -140,109 +152,167 @@ public sealed partial class MainWindow : Window
             _logger.LogDebug("Ctrl+S pressed, saving file");
             await SaveFileAsync();
         }
+        else if (e.Key == Windows.System.VirtualKey.Escape)
+        {
+            e.Handled = true;
+            _logger.LogDebug("Escape pressed, hiding command palette if open");
+            HideCommandPalette();
+        }
     }
+
+    private Controls.CustomCommandPalette? _currentPalette;
 
     private async Task ShowCommandPalette()
     {
+        // Don't show if already showing
+        if (_currentPalette != null) return;
+
         var commands = new List<Controls.CommandItem>
         {
-            new Controls.CommandItem 
-            { 
-                Name = "Open File", 
+            new Controls.CommandItem
+            {
+                Name = "New File",
+                Description = "Create a new markdown file",
+                Shortcut = "Ctrl+N",
+                SearchTerms = new List<string> { "new", "create", "file" },
+                Action = async () => await CreateNewFile()
+            },
+            new Controls.CommandItem
+            {
+                Name = "Open File",
                 Description = "Open a markdown or text file",
-                Shortcut = "Ctrl+O", 
+                Shortcut = "Ctrl+O",
                 SearchTerms = new List<string> { "open", "file", "load" },
-                Action = async () => await ShowOpenFileDialog() 
+                Action = async () => await ShowOpenFileDialog()
             },
-            new Controls.CommandItem 
-            { 
-                Name = "Save", 
+            new Controls.CommandItem
+            {
+                Name = "Save",
                 Description = "Save the current file",
-                Shortcut = "Ctrl+S", 
+                Shortcut = "Ctrl+S",
                 SearchTerms = new List<string> { "save", "write" },
-                Action = async () => await SaveFileAsync() 
+                Action = async () => await SaveFileAsync()
             },
-            new Controls.CommandItem 
-            { 
-                Name = "Save As...", 
+            new Controls.CommandItem
+            {
+                Name = "Save As...",
                 Description = "Save as a new file",
-                Shortcut = "Ctrl+Shift+S", 
+                Shortcut = "Ctrl+Shift+S",
                 SearchTerms = new List<string> { "save as", "save new", "export" },
-                Action = async () => await SaveFileAsAsync() 
+                Action = async () => await SaveFileAsAsync()
             },
-            new Controls.CommandItem 
-            { 
-                Name = "Rename File", 
+            new Controls.CommandItem
+            {
+                Name = "Rename File",
                 Description = "Rename the current file",
-                Shortcut = "F2", 
+                Shortcut = "F2",
                 SearchTerms = new List<string> { "rename", "name" },
-                Action = async () => await ShowRenameDialog() 
+                Action = async () => await ShowRenameDialog()
             },
-            new Controls.CommandItem 
-            { 
-                Name = "Undo", 
+            new Controls.CommandItem
+            {
+                Name = "Undo",
                 Description = "Undo the last action",
-                Shortcut = "Ctrl+Z", 
+                Shortcut = "Ctrl+Z",
                 SearchTerms = new List<string> { "undo", "revert" },
-                Action = async () => await ExecuteScriptSafely("executeCommand('undo')") 
+                Action = async () => await ExecuteScriptSafely("executeCommand('undo')")
             },
-            new Controls.CommandItem 
-            { 
-                Name = "Redo", 
+            new Controls.CommandItem
+            {
+                Name = "Redo",
                 Description = "Redo the last undone action",
-                Shortcut = "Ctrl+Y", 
+                Shortcut = "Ctrl+Y",
                 SearchTerms = new List<string> { "redo", "repeat" },
-                Action = async () => await ExecuteScriptSafely("executeCommand('redo')") 
+                Action = async () => await ExecuteScriptSafely("executeCommand('redo')")
             },
-            new Controls.CommandItem 
-            { 
-                Name = "Bold", 
+            new Controls.CommandItem
+            {
+                Name = "Bold",
                 Description = "Make text bold",
-                Shortcut = "Ctrl+B", 
+                Shortcut = "Ctrl+B",
                 SearchTerms = new List<string> { "bold", "strong", "format" },
-                Action = async () => await ExecuteScriptSafely("document.execCommand('bold')") 
+                Action = async () => await ExecuteScriptSafely("document.execCommand('bold')")
             },
-            new Controls.CommandItem 
-            { 
-                Name = "Italic", 
+            new Controls.CommandItem
+            {
+                Name = "Italic",
                 Description = "Make text italic",
-                Shortcut = "Ctrl+I", 
+                Shortcut = "Ctrl+I",
                 SearchTerms = new List<string> { "italic", "emphasis", "format" },
-                Action = async () => await ExecuteScriptSafely("document.execCommand('italic')") 
+                Action = async () => await ExecuteScriptSafely("document.execCommand('italic')")
             },
-            new Controls.CommandItem 
-            { 
-                Name = "Select All", 
+            new Controls.CommandItem
+            {
+                Name = "Select All",
                 Description = "Select all text in the editor",
-                Shortcut = "Ctrl+A", 
+                Shortcut = "Ctrl+A",
                 SearchTerms = new List<string> { "select", "select all", "all" },
-                Action = async () => await ExecuteScriptSafely("document.execCommand('selectAll')") 
+                Action = async () => await ExecuteScriptSafely("document.execCommand('selectAll')")
             }
         };
 
-        var palette = new Controls.CommandPalette
-        {
-            XamlRoot = this.Content.XamlRoot
-        };
-        
-        palette.SetCommands(commands);
-        await palette.ShowAsync();
+        // Create the custom command palette
+        _currentPalette = new Controls.CustomCommandPalette();
+
+        // Set up commands and size
+        _currentPalette.SetCommands(commands);
+
+        // Make it responsive to window size
+        var windowSize = AppWindow.Size;
+        _currentPalette.SetResponsiveSize(windowSize.Width, windowSize.Height);
+
+        // Handle close event
+        _currentPalette.CloseRequested += (s, e) => HideCommandPalette();
+
+        // Show the palette
+        _currentPalette.Show(this.Content.XamlRoot);
     }
 
-    private class CommandPaletteItem
+    private void HideCommandPalette()
     {
-        public string Name { get; set; } = "";
-        public string Shortcut { get; set; } = "";
-        public Func<Task> Action { get; set; } = () => Task.CompletedTask;
-
-        public override string ToString()
+        if (_currentPalette != null)
         {
-            return string.IsNullOrEmpty(Shortcut) ? Name : $"{Name} ({Shortcut})";
+            _currentPalette.Hide();
+            _currentPalette = null;
         }
     }
 
     private async Task ShowOpenFileDialog()
     {
+        // Check for unsaved changes before opening a new file
+        bool hasUnsavedChanges = await CheckForUnsavedChanges();
+        
+        if (hasUnsavedChanges)
+        {
+            var dialog = new ContentDialog
+            {
+                Title = "Unsaved Changes",
+                Content = "You have unsaved changes. Would you like to save them before opening a new file?",
+                PrimaryButtonText = "Save",
+                SecondaryButtonText = "Don't Save",
+                CloseButtonText = "Cancel",
+                XamlRoot = this.Content.XamlRoot
+            };
+
+            var result = await dialog.ShowAsync();
+
+            if (result == ContentDialogResult.Primary)
+            {
+                // User chose to save
+                await SaveFileAsync();
+            }
+            else if (result == ContentDialogResult.Secondary)
+            {
+                // User chose not to save, discard changes
+                _logger.LogDebug("Unsaved changes discarded for file open");
+            }
+            else
+            {
+                // User cancelled, do not open new file
+                return;
+            }
+        }
+
         try
         {
             var picker = new Windows.Storage.Pickers.FileOpenPicker();
@@ -282,7 +352,7 @@ public sealed partial class MainWindow : Window
 
             _currentFilePath = file.Path;
             _currentFileName = file.Name;
-            UpdateTitle();
+            _lastSavedContent = content; // Track the content that was loaded
 
             int attempts = 0;
             while (!_isReady && attempts < 100)
@@ -331,6 +401,7 @@ public sealed partial class MainWindow : Window
 
             if (success)
             {
+                MarkFileAsSaved(); // File is loaded and saved
                 _logger.LogInformation("File loaded successfully: {FileName}", file.Name);
             }
             else
@@ -392,7 +463,7 @@ public sealed partial class MainWindow : Window
                 return;
             }
 
-            if (!newFileName.EndsWith(".md", StringComparison.OrdinalIgnoreCase) && 
+            if (!newFileName.EndsWith(".md", StringComparison.OrdinalIgnoreCase) &&
                 !newFileName.EndsWith(".txt", StringComparison.OrdinalIgnoreCase) &&
                 !newFileName.EndsWith(".markdown", StringComparison.OrdinalIgnoreCase))
             {
@@ -435,7 +506,7 @@ public sealed partial class MainWindow : Window
                 _currentFileName = newFileName;
                 UpdateTitle();
 
-                _logger.LogInformation("File successfully renamed from '{OldName}' to '{NewName}' at {Path}", 
+                _logger.LogInformation("File successfully renamed from '{OldName}' to '{NewName}' at {Path}",
                     oldFile.Name, newFileName, newPath);
 
                 // Show success message
@@ -493,7 +564,8 @@ public sealed partial class MainWindow : Window
 
     private void UpdateTitle()
     {
-        TitleBarFileNameText.Text = _currentFileName;
+        var displayName = _hasUnsavedChanges ? $"*{_currentFileName}" : _currentFileName;
+        TitleBarFileNameText.Text = displayName;
     }
 
     private async void InitializeEditor()
@@ -764,6 +836,9 @@ public sealed partial class MainWindow : Window
             var isDark = Content is FrameworkElement fe && fe.ActualTheme == ElementTheme.Dark;
             await ExecuteScriptSafely($"if(window.setTheme) window.setTheme({(isDark ? "true" : "false")});");
 
+            // Set up content change tracking
+            await ExecuteScriptSafely("if(window.setupContentChangeTracking) window.setupContentChangeTracking();");
+
             _logger.LogInformation("Milkdown editor fully initialized and ready with theme: {IsDark}", isDark);
         }
         catch (Exception ex)
@@ -791,6 +866,12 @@ public sealed partial class MainWindow : Window
 
             switch (actionValue)
             {
+                case "contentChanged":
+                    MarkFileAsModified();
+                    break;
+                case "new":
+                    await CreateNewFile();
+                    break;
                 case "open":
                     await ShowOpenFileDialog();
                     break;
@@ -973,6 +1054,9 @@ public sealed partial class MainWindow : Window
             var file = await Windows.Storage.StorageFile.GetFileFromPathAsync(_currentFilePath);
             await Windows.Storage.FileIO.WriteTextAsync(file, content);
 
+            _lastSavedContent = content; // Update last saved content
+            MarkFileAsSaved(); // Mark as saved
+
             _logger.LogInformation("File saved: {FileName}", _currentFileName);
         }
         catch (Exception ex)
@@ -1003,7 +1087,8 @@ public sealed partial class MainWindow : Window
 
                 _currentFilePath = file.Path;
                 _currentFileName = file.Name;
-                UpdateTitle();
+                _lastSavedContent = content; // Update last saved content
+                MarkFileAsSaved(); // Mark as saved
 
                 _logger.LogInformation("File saved as: {FileName} at {Path}", file.Name, file.Path);
             }
@@ -1016,5 +1101,167 @@ public sealed partial class MainWindow : Window
         {
             _logger.LogError(ex, "Failed to show save file dialog");
         }
+    }
+
+    private void MarkFileAsModified()
+    {
+        if (!_hasUnsavedChanges)
+        {
+            _hasUnsavedChanges = true;
+            _isFileModified = true;
+            
+            // Update title immediately on UI thread
+            DispatcherQueue.TryEnqueue(() => {
+                UpdateTitle();
+            });
+            
+            // Start periodic content checking for ultra-fast updates
+            StartContentCheckTimer();
+            
+            _logger.LogDebug("File marked as modified");
+        }
+    }
+
+    private void MarkFileAsSaved()
+    {
+        _hasUnsavedChanges = false;
+        _isFileModified = false;
+        
+        // Update title immediately on UI thread
+        DispatcherQueue.TryEnqueue(() => {
+            UpdateTitle();
+        });
+        
+        // Stop periodic checking when file is saved
+        StopContentCheckTimer();
+        
+        _logger.LogDebug("File marked as saved");
+    }
+
+    private void StartContentCheckTimer()
+    {
+        if (_contentCheckTimer == null)
+        {
+            _contentCheckTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(50) // Check every 50ms for ultra-fast response
+            };
+            _contentCheckTimer.Tick += async (s, e) => await ContentCheckTimer_Tick();
+        }
+        
+        if (!_contentCheckTimer.IsEnabled)
+        {
+            _contentCheckTimer.Start();
+            _logger.LogDebug("Content check timer started for fast title updates");
+        }
+    }
+
+    private void StopContentCheckTimer()
+    {
+        if (_contentCheckTimer?.IsEnabled == true)
+        {
+            _contentCheckTimer.Stop();
+            _logger.LogDebug("Content check timer stopped");
+        }
+    }
+
+    private async Task ContentCheckTimer_Tick()
+    {
+        try
+        {
+            // Only check if editor is ready and we think there might be changes
+            if (_isReady && _hasUnsavedChanges)
+            {
+                var currentContent = await GetMarkdownAsync();
+                
+                // If content matches saved content, mark as saved
+                if (currentContent == _lastSavedContent && _hasUnsavedChanges)
+                {
+                    _hasUnsavedChanges = false;
+                    _isFileModified = false;
+                    UpdateTitle();
+                    StopContentCheckTimer();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in content check timer");
+            StopContentCheckTimer();
+        }
+    }
+
+    private async Task<bool> CheckForUnsavedChanges()
+    {
+        if (!_isReady) return false;
+
+        try
+        {
+            var currentContent = await GetMarkdownAsync();
+
+            // Compare with last saved content
+            bool hasChanges = currentContent != _lastSavedContent;
+
+            if (hasChanges != _hasUnsavedChanges)
+            {
+                _hasUnsavedChanges = hasChanges;
+                _isFileModified = hasChanges;
+                UpdateTitle();
+            }
+
+            return hasChanges;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to check for unsaved changes");
+            return false;
+        }
+    }
+
+    private async Task CreateNewFile()
+    {
+        // Check for actual unsaved changes
+        bool hasUnsavedChanges = await CheckForUnsavedChanges();
+
+        if (hasUnsavedChanges)
+        {
+            var dialog = new ContentDialog
+            {
+                Title = "Unsaved Changes",
+                Content = "You have unsaved changes. Would you like to save them before creating a new file?",
+                PrimaryButtonText = "Save",
+                SecondaryButtonText = "Don't Save",
+                CloseButtonText = "Cancel",
+                XamlRoot = this.Content.XamlRoot
+            };
+
+            var result = await dialog.ShowAsync();
+
+            if (result == ContentDialogResult.Primary)
+            {
+                // User chose to save
+                await SaveFileAsync();
+            }
+            else if (result == ContentDialogResult.Secondary)
+            {
+                // User chose not to save, discard changes
+                _logger.LogDebug("Unsaved changes discarded");
+            }
+            else
+            {
+                // User cancelled, do not create new file
+                return;
+            }
+        }
+
+        // Create a new empty file
+        _currentFileName = "Untitled.md";
+        _currentFilePath = null;
+        _lastSavedContent = "";
+
+        await SetMarkdownAsync("");
+        MarkFileAsSaved(); // New empty file is considered "saved"
+
+        _logger.LogInformation("Created new file");
     }
 }

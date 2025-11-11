@@ -464,6 +464,57 @@ function updatePlaceholder() {
     }
 }
 
+// Set up content change detection
+let isTrackingChanges = false;
+let changeTimeout;
+
+function setupContentChangeTracking() {
+    if (isTrackingChanges) return;
+    
+    console.log('Setting up content change tracking');
+    
+    // Listen for input events on the editor
+    document.addEventListener('input', () => {
+        clearTimeout(changeTimeout);
+        changeTimeout = setTimeout(() => {
+            console.log('Content changed, notifying C#');
+            if (window.chrome && window.chrome.webview) {
+                window.chrome.webview.postMessage({ action: 'contentChanged' });
+            }
+        }, 100); // Reduced from 500ms to 100ms for faster response
+    }, true);
+    
+    // Also listen for keydown events for immediate feedback on certain keys
+    document.addEventListener('keydown', (e) => {
+        // For printable characters and common editing keys, notify immediately
+        if (e.key.length === 1 || ['Backspace', 'Delete', 'Enter', 'Tab'].includes(e.key)) {
+            if (window.chrome && window.chrome.webview) {
+                window.chrome.webview.postMessage({ action: 'contentChanged' });
+            }
+        }
+    }, true);
+    
+    // Listen for paste events - immediate notification
+    document.addEventListener('paste', () => {
+        if (window.chrome && window.chrome.webview) {
+            window.chrome.webview.postMessage({ action: 'contentChanged' });
+        }
+    }, true);
+    
+    // Listen for cut events - immediate notification  
+    document.addEventListener('cut', () => {
+        if (window.chrome && window.chrome.webview) {
+            window.chrome.webview.postMessage({ action: 'contentChanged' });
+        }
+    }, true);
+    
+    isTrackingChanges = true;
+    console.log('Content change tracking enabled with fast response');
+}
+
+// Call setup after editor is ready
+window.setupContentChangeTracking = setupContentChangeTracking;
+
 createEditor();
 
 window.getMarkdown = () => {
@@ -548,6 +599,16 @@ document.addEventListener('keydown', (e) => {
         }
     }
     
+    if (e.ctrlKey && e.key === 'n') {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('Ctrl+N detected, sending to C#');
+        if (window.chrome && window.chrome.webview) {
+            window.chrome.webview.postMessage({ action: 'new' });
+        }
+        return false;
+    }
+    
     if (e.ctrlKey && e.key === 'o') {
         e.preventDefault();
         e.stopPropagation();
@@ -606,4 +667,4 @@ document.addEventListener('click', (e) => {
     }
 });
 
-console.log('✓ Keyboard shortcuts handler installed (Ctrl+O, Ctrl+S, Ctrl+Shift+S, F2, Ctrl+Shift+P, Slash menu navigation)');
+console.log('✓ Keyboard shortcuts handler installed (Ctrl+N, Ctrl+O, Ctrl+S, Ctrl+Shift+S, F2, Ctrl+Shift+P, Slash menu navigation)');
