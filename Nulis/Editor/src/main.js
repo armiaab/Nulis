@@ -51,7 +51,7 @@ orderedList: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke
 <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
   <polyline points="21 15 16 10 5 21"/>
  </svg>`
-};
+ };
 
 // Fuzzy matching algorithm
 function fuzzyMatch(query, text) {
@@ -596,7 +596,7 @@ function createPlaceholder() {
   pointer-events: none;
  font-size: clamp(15px, 1.2vw, 20px);
         line-height: 1.7;
-        font-family: 'Segoe UI', Arial, sans-serif;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     `;
     
     const app = document.getElementById('app');
