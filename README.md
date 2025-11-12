@@ -79,6 +79,7 @@ For testers and developers:
 | Save as | `Ctrl+Shift+S` |
 | Command Palatte | `Ctrl+Shift+P` |
 | Rename File | `F2` |
+| Format Menu | `/` |
 
 ### File Associations
 
