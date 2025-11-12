@@ -11,6 +11,7 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
 using Microsoft.UI;
+using Microsoft.UI.Xaml.Documents;
 
 namespace Nulis.Controls;
 
@@ -255,27 +256,98 @@ double paletteHeight = Math.Max(300, Math.Min(700, windowHeight * 0.6));
 
     private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
     {
-        if (_searchBox == null) return;
+ if (_searchBox == null) return;
 
-   var searchText = _searchBox.Text.ToLower();
+        var searchText = _searchBox.Text;
         
         if (string.IsNullOrWhiteSpace(searchText))
-   {
+        {
             _filteredCommands = new List<CommandItem>(_allCommands);
         }
-        else
+   else
         {
-            _filteredCommands = _allCommands
-          .Where(cmd => 
-                    cmd.Name.ToLower().Contains(searchText) || 
-        cmd.Description.ToLower().Contains(searchText) ||
-       cmd.SearchTerms.Any(term => term.ToLower().Contains(searchText)))
-    .ToList();
+   _filteredCommands = _allCommands
+    .Select(cmd => new { Command = cmd, Match = FuzzyMatch(searchText, cmd) })
+     .Where(x => x.Match.Matches)
+       .OrderByDescending(x => x.Match.Score)
+    .Select(x => x.Command)
+          .ToList();
         }
 
- _selectedIndex = 0;
-        UpdateCommandsList();
+        _selectedIndex = 0;
+ UpdateCommandsList();
     }
+
+    private (bool Matches, int Score) FuzzyMatch(string query, CommandItem item)
+    {
+  if (string.IsNullOrWhiteSpace(query))
+            return (true, 0);
+
+        query = query.ToLower();
+
+   // Try matching against name, description, and search terms
+        var nameMatch = FuzzyMatchString(query, item.Name.ToLower());
+        var descMatch = FuzzyMatchString(query, item.Description.ToLower());
+        var termsMatch = item.SearchTerms
+            .Select(term => FuzzyMatchString(query, term.ToLower()))
+            .Where(m => m.Matches)
+        .OrderByDescending(m => m.Score)
+  .FirstOrDefault();
+
+        // Return the best match
+        if (nameMatch.Matches)
+            return nameMatch;
+        if (descMatch.Matches)
+   return (true, descMatch.Score - 5); // Slightly lower score for description matches
+        if (termsMatch.Matches)
+            return (true, termsMatch.Score - 10); // Even lower for search term matches
+
+        return (false, 0);
+    }
+
+    private (bool Matches, int Score) FuzzyMatchString(string query, string text)
+  {
+    int queryIndex = 0;
+        int textIndex = 0;
+int score = 0;
+        int consecutiveMatches = 0;
+
+      while (queryIndex < query.Length && textIndex < text.Length)
+        {
+      if (query[queryIndex] == text[textIndex])
+       {
+          consecutiveMatches++;
+
+        // Bonus for consecutive matches
+    score += 10 + (consecutiveMatches * 5);
+
+    // Bonus for matching at the start
+       if (textIndex == 0)
+           score += 15;
+
+                // Bonus for matching after a space or special char
+                if (textIndex > 0 && (char.IsWhiteSpace(text[textIndex - 1]) || 
+     text[textIndex - 1] == '-' || text[textIndex - 1] == '_'))
+    score += 12;
+
+       queryIndex++;
+       }
+            else
+       {
+ consecutiveMatches = 0;
+         }
+            textIndex++;
+        }
+
+    // All query characters must be matched
+        if (queryIndex < query.Length)
+            return (false, 0);
+
+    // Penalty for longer text (prefer shorter matches)
+ score -= (int)((text.Length - query.Length) * 0.5);
+
+        return (true, score);
+}
 
     private async void SearchBox_KeyDown(object sender, KeyRoutedEventArgs e)
     {
