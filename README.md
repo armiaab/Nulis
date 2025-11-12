@@ -77,8 +77,8 @@ For testers and developers:
 | Open file | `Ctrl+O` |
 | Save | `Ctrl+S` |
 | Save as | `Ctrl+Shift+S` |
-| Close file | `Ctrl+W` |
-| Quit | `Ctrl+Q` |
+| Command Palatte | `Ctrl+Shift+P` |
+| Rename File | `F2` |
 
 ### File Associations
 
@@ -195,7 +195,6 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 **Note**: 
 - `master` - Development branch
-- `production` - Optimized releases with MSIX installer support
 
 ## 📝 Project Structure
 
@@ -271,13 +270,10 @@ Download and install the latest MSIX from Releases. It will update automatically
 
 ## 🚀 Roadmap
 
+- [ ] Math Support
+- [ ] HTML tag support
 - [ ] Microsoft Store distribution
 - [ ] Custom themes and color schemes
-- [ ] Plugin/extension system
-- [ ] Cloud sync support
-- [ ] Collaborative editing
-- [ ] Export to PDF/HTML
-- [ ] Mobile companion app
 
 ## 📄 License
 
