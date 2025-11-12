@@ -472,9 +472,13 @@ async function createEditor() {
          
    ctx.get(listenerCtx).markdownUpdated((ctx, markdown) => {
       if (window.chrome && window.chrome.webview) {
+         // Get the actual rendered text content instead of markdown
+         const view = ctx.get(editorViewCtx);
+         const textContent = view.state.doc.textContent || '';
+         
          window.chrome.webview.postMessage({
       type: 'change',
-                  content: markdown
+                  content: textContent.trim()
           });
         }
       

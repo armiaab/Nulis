@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<UserControl
+    x:Class="Nulis.Controls.StatusBar"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:Nulis.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Border
+        Height="32"
+        Background="{ThemeResource LayerFillColorDefaultBrush}"
+        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+        BorderThickness="0,1,0,0">
+        <Grid Padding="12,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel
+                Grid.Column="0"
+                Orientation="Horizontal"
+                Spacing="16">
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        FontSize="11"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Opacity="0.8"
+                        Text="Words:" />
+                    <TextBlock
+                        x:Name="WordCountText"
+                        VerticalAlignment="Center"
+                        FontSize="11"
+                        FontWeight="SemiBold"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Opacity="0.8"
+                        Text="0" />
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        FontSize="11"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Opacity="0.8"
+                        Text="Characters:" />
+                    <TextBlock
+                        x:Name="CharacterCountText"
+                        VerticalAlignment="Center"
+                        FontSize="11"
+                        FontWeight="SemiBold"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Opacity="0.8"
+                        Text="0" />
+                </StackPanel>
+
+                <TextBlock
+                    x:Name="FileTypeText"
+                    VerticalAlignment="Center"
+                    FontSize="11"
+                    FontWeight="SemiBold"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    Opacity="0.8"
+                    Text="Markdown" />
+            </StackPanel>
+
+            <Border
+                x:Name="TimerContainer"
+                Grid.Column="2"
+                Padding="8,4"
+                Background="Transparent"
+                CornerRadius="4"
+                DoubleTapped="Timer_DoubleTapped"
+                PointerEntered="Timer_PointerEntered"
+                PointerExited="Timer_PointerExited"
+                PointerPressed="Timer_PointerPressed">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <FontIcon
+                        x:Name="TimerIcon"
+                        VerticalAlignment="Center"
+                        FontSize="12"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Glyph="&#xE121;"
+                        IsHitTestVisible="False"
+                        Opacity="0.8" />
+                    <TextBlock
+                        x:Name="TimerText"
+                        VerticalAlignment="Center"
+                        FontSize="11"
+                        FontWeight="SemiBold"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        IsHitTestVisible="False"
+                        Opacity="0.8"
+                        Text="15:00" />
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
+</UserControl>

@@ -352,7 +352,9 @@ public sealed partial class MainWindow : Window
 
             _currentFilePath = file.Path;
             _currentFileName = file.Name;
-            _lastSavedContent = content; // Track the content that was loaded
+            _lastSavedContent = content;
+            
+            UpdateFileTypeInStatusBar();
 
             int attempts = 0;
             while (!_isReady && attempts < 100)
@@ -401,7 +403,7 @@ public sealed partial class MainWindow : Window
 
             if (success)
             {
-                MarkFileAsSaved(); // File is loaded and saved
+                MarkFileAsSaved();
                 _logger.LogInformation("File loaded successfully: {FileName}", file.Name);
             }
             else
@@ -413,6 +415,18 @@ public sealed partial class MainWindow : Window
         {
             _logger.LogError(ex, "Failed to load file");
         }
+    }
+    
+    private void UpdateFileTypeInStatusBar()
+    {
+        var extension = Path.GetExtension(_currentFileName).ToLower();
+        var fileType = extension switch
+        {
+            ".md" or ".markdown" => "Markdown",
+            ".txt" => "Plain Text",
+            _ => "Text"
+        };
+        StatusBarControl.UpdateFileType(fileType);
     }
 
     private async Task ShowRenameDialog()
@@ -858,6 +872,16 @@ public sealed partial class MainWindow : Window
             _logger.LogDebug("WebMessage received: {Message}", message);
 
             var data = System.Text.Json.JsonDocument.Parse(message);
+            
+            if (data.RootElement.TryGetProperty("type", out var type) && type.GetString() == "change")
+            {
+                if (data.RootElement.TryGetProperty("content", out var content))
+                {
+                    var markdown = content.GetString() ?? "";
+                    StatusBarControl.UpdateStats(markdown);
+                }
+            }
+            
             if (!data.RootElement.TryGetProperty("action", out var action))
                 return;
 
@@ -1087,8 +1111,9 @@ public sealed partial class MainWindow : Window
 
                 _currentFilePath = file.Path;
                 _currentFileName = file.Name;
-                _lastSavedContent = content; // Update last saved content
-                MarkFileAsSaved(); // Mark as saved
+                _lastSavedContent = content;
+                MarkFileAsSaved();
+                UpdateFileTypeInStatusBar();
 
                 _logger.LogInformation("File saved as: {FileName} at {Path}", file.Name, file.Path);
             }
@@ -1220,7 +1245,6 @@ public sealed partial class MainWindow : Window
 
     private async Task CreateNewFile()
     {
-        // Check for actual unsaved changes
         bool hasUnsavedChanges = await CheckForUnsavedChanges();
 
         if (hasUnsavedChanges)
@@ -1239,28 +1263,25 @@ public sealed partial class MainWindow : Window
 
             if (result == ContentDialogResult.Primary)
             {
-                // User chose to save
                 await SaveFileAsync();
             }
             else if (result == ContentDialogResult.Secondary)
             {
-                // User chose not to save, discard changes
                 _logger.LogDebug("Unsaved changes discarded");
             }
             else
             {
-                // User cancelled, do not create new file
                 return;
             }
         }
 
-        // Create a new empty file
         _currentFileName = "Untitled.md";
         _currentFilePath = null;
         _lastSavedContent = "";
 
         await SetMarkdownAsync("");
-        MarkFileAsSaved(); // New empty file is considered "saved"
+        MarkFileAsSaved();
+        UpdateFileTypeInStatusBar();
 
         _logger.LogInformation("Created new file");
     }
