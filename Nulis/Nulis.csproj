@@ -9,9 +9,10 @@
     <RuntimeIdentifiers>win-x86;win-x64;win-arm64</RuntimeIdentifiers>
     <PublishProfile>win-$(Platform).pubxml</PublishProfile>
     <UseWinUI>true</UseWinUI>
-    <WinUISDKReferences>false</WinUISDKReferences>
     <EnableMsixTooling>true</EnableMsixTooling>
     <Nullable>enable</Nullable>
+    <WindowsPackageType>MSIX</WindowsPackageType>
+    <PublishSingleFile>false</PublishSingleFile>
   </PropertyGroup>
 
   <ItemGroup>
@@ -58,11 +59,11 @@
   <!-- Auto-build Milkdown editor before C# build -->
   <Target Name="BuildMilkdownEditor" BeforeTargets="BeforeBuild">
     <PropertyGroup>
-    <EditorPath>$(MSBuildProjectDirectory)\Editor</EditorPath>
+      <EditorPath>$(MSBuildProjectDirectory)\Editor</EditorPath>
       <NodeModulesExists Condition="Exists('$(EditorPath)\node_modules')">true</NodeModulesExists>
-  </PropertyGroup>
+    </PropertyGroup>
 
-  <!-- Install npm packages if node_modules doesn't exist -->
+    <!-- Install npm packages if node_modules doesn't exist -->
     <Exec Command="npm install" WorkingDirectory="$(EditorPath)" Condition="'$(NodeModulesExists)' != 'true'" />
  
     <!-- Build the editor -->

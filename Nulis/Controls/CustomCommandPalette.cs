@@ -27,6 +27,9 @@ public sealed class CustomCommandPalette
     private List<CommandItem> _filteredCommands = new();
     private int _selectedIndex = 0;
     
+    // Keep reference to the root element for proper cleanup
+    private WeakReference<FrameworkElement>? _rootElementRef;
+
     public event EventHandler? CloseRequested;
 
     public CustomCommandPalette()
@@ -39,65 +42,59 @@ public sealed class CustomCommandPalette
         // Create overlay grid with solid background instead of transparent
         _overlayGrid = new Grid
         {
-            Background = (Brush)Application.Current.Resources["ApplicationPageBackgroundThemeBrush"]
+       Background = (Brush)Application.Current.Resources["ApplicationPageBackgroundThemeBrush"]
         };
 
         // Overlay rectangle for click-to-close
-        var overlayRect = new Rectangle
+   var overlayRect = new Rectangle
         {
-            Fill = new SolidColorBrush(Windows.UI.Color.FromArgb(0, 0, 0, 0))
-        };
+        Fill = new SolidColorBrush(Windows.UI.Color.FromArgb(0, 0, 0, 0))
+};
         overlayRect.Tapped += (s, e) => CloseRequested?.Invoke(this, EventArgs.Empty);
         _overlayGrid.Children.Add(overlayRect);
 
-        // Create palette container
-        _paletteContainer = new Border
-        {
+        // Create palette container with responsive sizing
+     _paletteContainer = new Border
+ {
             Background = (Brush)Application.Current.Resources["LayerFillColorDefaultBrush"],
-            BorderBrush = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"],
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(12),
-            Margin = new Thickness(50),
-            VerticalAlignment = VerticalAlignment.Top,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            MinWidth = 700,
-            MaxWidth = 1200,
-            Width = 800,
-            MinHeight = 400,
-            MaxHeight = 700,
-            Height = 500
+      BorderBrush = (Brush)Application.Current.Resources["CardStrokeColorDefaultBrush"],
+     BorderThickness = new Thickness(1),
+     CornerRadius = new CornerRadius(12),
+ VerticalAlignment = VerticalAlignment.Top,
+ HorizontalAlignment = HorizontalAlignment.Center,
+       // Remove fixed sizing - will be set dynamically
         };
 
-        // Add shadow
-        _paletteContainer.Shadow = new ThemeShadow();
+    // Add shadow
+    _paletteContainer.Shadow = new ThemeShadow();
 
-        // Create inner grid
+   // Create inner grid
         var innerGrid = new Grid
         {
-            Margin = new Thickness(20)
-        };
-        innerGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+  Margin = new Thickness(20)
+     };
+     innerGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         innerGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
-        // Create search box
-        _searchBox = new TextBox
+     // Create search box
+  _searchBox = new TextBox
         {
-            PlaceholderText = "Type a command or search...",
-            FontSize = 14,
-            Padding = new Thickness(12, 10, 12, 10),
-            Margin = new Thickness(0, 0, 0, 16),
-            CornerRadius = new CornerRadius(6),
-            BorderThickness = new Thickness(1)
+ PlaceholderText = "Type a command or search...",
+   FontSize = 14,
+         Padding = new Thickness(12, 10, 12, 10),
+ Margin = new Thickness(0, 0, 0, 16),
+CornerRadius = new CornerRadius(6),
+     BorderThickness = new Thickness(1)
         };
-        _searchBox.TextChanged += SearchBox_TextChanged;
-        _searchBox.KeyDown += SearchBox_KeyDown;
-        Grid.SetRow(_searchBox, 0);
+      _searchBox.TextChanged += SearchBox_TextChanged;
+    _searchBox.KeyDown += SearchBox_KeyDown;
+      Grid.SetRow(_searchBox, 0);
 
-        // Create scroll viewer and items control
-        var scrollViewer = new ScrollViewer
-        {
+   // Create scroll viewer and items control
+ var scrollViewer = new ScrollViewer
+      {
             Padding = new Thickness(0, 0, 0, 8),
-            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+       VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
         };
         Grid.SetRow(scrollViewer, 1);
@@ -109,119 +106,174 @@ public sealed class CustomCommandPalette
         // Create no results message
         _noResultsText = new StackPanel
         {
-            HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center,
+      HorizontalAlignment = HorizontalAlignment.Center,
+     VerticalAlignment = VerticalAlignment.Center,
             Spacing = 8,
-            Visibility = Visibility.Collapsed
+     Visibility = Visibility.Collapsed
         };
 
-        var noResultsIcon = new FontIcon
+   var noResultsIcon = new FontIcon
         {
             Glyph = "\uE11A",
-            FontSize = 32,
+   FontSize = 32,
             Foreground = (Brush)Application.Current.Resources["TextFillColorTertiaryBrush"]
         };
 
-        var noResultsTextBlock = new TextBlock
+      var noResultsTextBlock = new TextBlock
         {
-            Text = "No commands found",
+          Text = "No commands found",
             FontSize = 14,
-            Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"]
-        };
+     Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"]
+     };
 
         _noResultsText.Children.Add(noResultsIcon);
-        _noResultsText.Children.Add(noResultsTextBlock);
+ _noResultsText.Children.Add(noResultsTextBlock);
         Grid.SetRow(_noResultsText, 1);
 
-        innerGrid.Children.Add(_searchBox);
-        innerGrid.Children.Add(scrollViewer);
-        innerGrid.Children.Add(_noResultsText);
+     innerGrid.Children.Add(_searchBox);
+   innerGrid.Children.Add(scrollViewer);
+    innerGrid.Children.Add(_noResultsText);
 
-        _paletteContainer.Child = innerGrid;
+      _paletteContainer.Child = innerGrid;
         _overlayGrid.Children.Add(_paletteContainer);
 
-        // Create popup
+        // Create popup with light dismiss DISABLED
         _popup = new Popup
         {
             Child = _overlayGrid,
-            IsLightDismissEnabled = true
+            IsLightDismissEnabled = false  // CHANGED: Disable light dismiss to prevent automatic closing
         };
+      
+        // Handle popup closed event for cleanup
+        _popup.Closed += Popup_Closed;
+    }
+
+    private void Popup_Closed(object? sender, object e)
+    {
+        // Clean up event handlers when popup is closed (by any means)
+     CleanupEventHandlers();
+    }
+
+    private void CleanupEventHandlers()
+    {
+  if (_rootElementRef != null && _rootElementRef.TryGetTarget(out var rootElement))
+        {
+            rootElement.SizeChanged -= RootElement_SizeChanged;
+        }
+    _rootElementRef = null;
     }
 
     public void Show(XamlRoot xamlRoot)
     {
-        if (_popup != null)
-        {
-            _popup.XamlRoot = xamlRoot;
-            
-            // Set size to cover entire window
-            if (xamlRoot.Content is FrameworkElement rootElement)
-            {
-                _overlayGrid!.Width = rootElement.ActualWidth;
-                _overlayGrid.Height = rootElement.ActualHeight;
-            }
-            
-            _popup.IsOpen = true;
+   if (_popup != null)
+{
+        _popup.XamlRoot = xamlRoot;
+    
+     // Set size to cover entire window and make palette responsive
+    if (xamlRoot.Content is FrameworkElement rootElement)
+      {
+     // Clean up any existing handlers first
+      CleanupEventHandlers();
+      
+                // Store weak reference to root element
+           _rootElementRef = new WeakReference<FrameworkElement>(rootElement);
+             
+       // Subscribe to size changes
+      rootElement.SizeChanged += RootElement_SizeChanged;
+                
+   // Set initial size
+         UpdateSizeForWindow(rootElement.ActualWidth, rootElement.ActualHeight);
+ }
+      
+         _popup.IsOpen = true;
             _searchBox?.Focus(FocusState.Programmatic);
+    }
+    }
+
+    private void RootElement_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+     // Only update size if popup is still open
+  if (_popup?.IsOpen == true)
+        {
+            UpdateSizeForWindow(e.NewSize.Width, e.NewSize.Height);
         }
+    }
+
+ private void UpdateSizeForWindow(double windowWidth, double windowHeight)
+    {
+        if (_overlayGrid == null || _paletteContainer == null) return;
+
+        // Update overlay to cover entire window
+        _overlayGrid.Width = windowWidth;
+        _overlayGrid.Height = windowHeight;
+
+        // Calculate responsive dimensions
+      // Width: 70% of window, min 400px, max 1200px
+        double paletteWidth = Math.Max(400, Math.Min(1200, windowWidth * 0.7));
+     
+        // Height: 60% of window, min 300px, max 700px
+double paletteHeight = Math.Max(300, Math.Min(700, windowHeight * 0.6));
+     
+        // Margin: 10% of window size
+        double marginHorizontal = windowWidth * 0.1;
+        double marginVertical = windowHeight * 0.1;
+
+        _paletteContainer.Width = paletteWidth;
+        _paletteContainer.Height = paletteHeight;
+        _paletteContainer.Margin = new Thickness(marginHorizontal, marginVertical, marginHorizontal, 0);
     }
 
     public void Hide()
     {
-        if (_popup != null)
+ if (_popup != null)
         {
             _popup.IsOpen = false;
-        }
+     // Cleanup is handled by Popup_Closed event
+    }
     }
 
     public void SetCommands(List<CommandItem> commands)
     {
         _allCommands = commands;
         _filteredCommands = new List<CommandItem>(commands);
-        UpdateCommandsList();
+ UpdateCommandsList();
     }
 
     public void SetSize(double width, double height)
     {
         if (_paletteContainer != null)
         {
-            _paletteContainer.Width = width;
+       _paletteContainer.Width = width;
             _paletteContainer.Height = height;
         }
     }
 
-    public void SetResponsiveSize(double windowWidth, double windowHeight)
+  public void SetResponsiveSize(double windowWidth, double windowHeight)
     {
-        double calculatedWidth = windowWidth * 0.7;
-        double calculatedHeight = windowHeight * 0.6;
-        
-        double finalWidth = Math.Max(700, Math.Min(1200, calculatedWidth));
-        double finalHeight = Math.Max(400, Math.Min(700, calculatedHeight));
-        
-        SetSize(finalWidth, finalHeight);
+        UpdateSizeForWindow(windowWidth, windowHeight);
     }
 
     private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
     {
         if (_searchBox == null) return;
-        
-        var searchText = _searchBox.Text.ToLower();
+
+   var searchText = _searchBox.Text.ToLower();
         
         if (string.IsNullOrWhiteSpace(searchText))
-        {
+   {
             _filteredCommands = new List<CommandItem>(_allCommands);
         }
         else
         {
             _filteredCommands = _allCommands
-                .Where(cmd => 
+          .Where(cmd => 
                     cmd.Name.ToLower().Contains(searchText) || 
-                    cmd.Description.ToLower().Contains(searchText) ||
-                    cmd.SearchTerms.Any(term => term.ToLower().Contains(searchText)))
-                .ToList();
+        cmd.Description.ToLower().Contains(searchText) ||
+       cmd.SearchTerms.Any(term => term.ToLower().Contains(searchText)))
+    .ToList();
         }
 
-        _selectedIndex = 0;
+ _selectedIndex = 0;
         UpdateCommandsList();
     }
 
@@ -230,24 +282,24 @@ public sealed class CustomCommandPalette
         if (e.Key == Windows.System.VirtualKey.Down)
         {
             e.Handled = true;
-            _selectedIndex = Math.Min(_selectedIndex + 1, _filteredCommands.Count - 1);
-            UpdateSelection();
-        }
+      _selectedIndex = Math.Min(_selectedIndex + 1, _filteredCommands.Count - 1);
+   UpdateSelection();
+   }
         else if (e.Key == Windows.System.VirtualKey.Up)
         {
-            e.Handled = true;
-            _selectedIndex = Math.Max(_selectedIndex - 1, 0);
-            UpdateSelection();
+ e.Handled = true;
+     _selectedIndex = Math.Max(_selectedIndex - 1, 0);
+   UpdateSelection();
         }
         else if (e.Key == Windows.System.VirtualKey.Enter)
-        {
-            e.Handled = true;
-            await ExecuteSelectedCommand();
+  {
+      e.Handled = true;
+   await ExecuteSelectedCommand();
         }
         else if (e.Key == Windows.System.VirtualKey.Escape)
         {
             e.Handled = true;
-            CloseRequested?.Invoke(this, EventArgs.Empty);
+        CloseRequested?.Invoke(this, EventArgs.Empty);
         }
     }
 
@@ -255,42 +307,42 @@ public sealed class CustomCommandPalette
     {
         if (_commandsItemsControl == null || _noResultsText == null) return;
 
-        // Create buttons for each command
+   // Create buttons for each command
         _commandsItemsControl.Items.Clear();
-        
+     
         foreach (var command in _filteredCommands)
         {
             var button = CreateCommandButton(command);
             _commandsItemsControl.Items.Add(button);
         }
 
-        _noResultsText.Visibility = _filteredCommands.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-        
+   _noResultsText.Visibility = _filteredCommands.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+     
         if (_filteredCommands.Count > 0)
-        {
-            UpdateSelection();
+     {
+    UpdateSelection();
         }
     }
 
     private Button CreateCommandButton(CommandItem command)
-    {
+ {
         var button = new Button
         {
             HorizontalAlignment = HorizontalAlignment.Stretch,
             HorizontalContentAlignment = HorizontalAlignment.Stretch,
-            Padding = new Thickness(12, 10, 12, 10),
-            Margin = new Thickness(0, 0, 0, 2),
+    Padding = new Thickness(12, 10, 12, 10),
+          Margin = new Thickness(0, 0, 0, 2),
             CornerRadius = new CornerRadius(6),
-            BorderThickness = new Thickness(1),
+         BorderThickness = new Thickness(1),
             Background = (Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"],
-            BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(0, 0, 0, 0)),
-            Tag = command
+          BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(0, 0, 0, 0)),
+        Tag = command
         };
 
         button.Click += async (s, e) =>
-        {
+   {
             CloseRequested?.Invoke(this, EventArgs.Empty);
-            await command.Action();
+     await command.Action();
         };
 
         // Create content grid
@@ -299,64 +351,64 @@ public sealed class CustomCommandPalette
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
         // Left content
-        var leftPanel = new StackPanel
+   var leftPanel = new StackPanel
         {
-            Spacing = 3,
-            HorizontalAlignment = HorizontalAlignment.Left,
+  Spacing = 3,
+ HorizontalAlignment = HorizontalAlignment.Left,
             VerticalAlignment = VerticalAlignment.Center
         };
-        Grid.SetColumn(leftPanel, 0);
+  Grid.SetColumn(leftPanel, 0);
 
-        var nameText = new TextBlock
+      var nameText = new TextBlock
         {
-            Text = command.Name,
-            FontSize = 13,
-            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+   Text = command.Name,
+    FontSize = 13,
+    FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
             Foreground = (Brush)Application.Current.Resources["TextFillColorPrimaryBrush"]
         };
 
-        var descText = new TextBlock
+var descText = new TextBlock
         {
-            Text = command.Description,
+     Text = command.Description,
             FontSize = 11,
             Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
-            TextWrapping = TextWrapping.Wrap,
-            Visibility = string.IsNullOrEmpty(command.Description) ? Visibility.Collapsed : Visibility.Visible,
+     TextWrapping = TextWrapping.Wrap,
+       Visibility = string.IsNullOrEmpty(command.Description) ? Visibility.Collapsed : Visibility.Visible,
             MaxLines = 2,
-            TextTrimming = TextTrimming.CharacterEllipsis
+      TextTrimming = TextTrimming.CharacterEllipsis
         };
 
         leftPanel.Children.Add(nameText);
         leftPanel.Children.Add(descText);
 
-        // Right shortcut
+ // Right shortcut
         var shortcutBorder = new Border
         {
             Background = (Brush)Application.Current.Resources["SubtleFillColorSecondaryBrush"],
-            CornerRadius = new CornerRadius(4),
-            Padding = new Thickness(8, 4, 8, 4),
+         CornerRadius = new CornerRadius(4),
+ Padding = new Thickness(8, 4, 8, 4),
             VerticalAlignment = VerticalAlignment.Center,
             Margin = new Thickness(12, 0, 0, 0),
             Visibility = string.IsNullOrEmpty(command.Shortcut) ? Visibility.Collapsed : Visibility.Visible
-        };
-        Grid.SetColumn(shortcutBorder, 1);
+      };
+Grid.SetColumn(shortcutBorder, 1);
 
         var shortcutText = new TextBlock
         {
             Text = command.Shortcut,
             FontSize = 11,
-            FontFamily = new FontFamily("Consolas"),
-            Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"]
+    FontFamily = new FontFamily("Consolas"),
+          Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"]
         };
 
-        shortcutBorder.Child = shortcutText;
+  shortcutBorder.Child = shortcutText;
 
         grid.Children.Add(leftPanel);
-        grid.Children.Add(shortcutBorder);
+      grid.Children.Add(shortcutBorder);
         button.Content = grid;
 
-        return button;
-    }
+    return button;
+ }
 
     private void UpdateSelection()
     {
@@ -366,123 +418,123 @@ public sealed class CustomCommandPalette
         {
             if (_commandsItemsControl.Items[i] is Button button)
             {
-                UpdateButtonStyle(button, i == _selectedIndex);
-            }
-        }
+         UpdateButtonStyle(button, i == _selectedIndex);
+    }
+  }
     }
 
     private void UpdateButtonStyle(Button button, bool isSelected)
     {
         if (isSelected)
         {
-            var accentColor = (Windows.UI.Color)Application.Current.Resources["SystemAccentColor"];
+ var accentColor = (Windows.UI.Color)Application.Current.Resources["SystemAccentColor"];
             button.BorderBrush = new SolidColorBrush(accentColor);
-            button.Background = new SolidColorBrush(Windows.UI.Color.FromArgb(25, accentColor.R, accentColor.G, accentColor.B));
+          button.Background = new SolidColorBrush(Windows.UI.Color.FromArgb(25, accentColor.R, accentColor.G, accentColor.B));
         }
         else
         {
-            button.BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(0, 0, 0, 0));
-            button.Background = (Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"];
+button.BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(0, 0, 0, 0));
+   button.Background = (Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"];
         }
     }
 
     private async Task ExecuteSelectedCommand()
     {
         if (_filteredCommands.Count > 0 && _selectedIndex >= 0 && _selectedIndex < _filteredCommands.Count)
-        {
+  {
             var command = _filteredCommands[_selectedIndex];
-            CloseRequested?.Invoke(this, EventArgs.Empty);
-            await command.Action();
-        }
+   CloseRequested?.Invoke(this, EventArgs.Empty);
+          await command.Action();
+    }
     }
 }
 
 public class CommandItem : INotifyPropertyChanged
 {
     private string _name = "";
-    private string _description = "";
+ private string _description = "";
     private string _shortcut = "";
     private List<string> _searchTerms = new();
     private Func<Task> _action = () => Task.CompletedTask;
-    private bool _isSelected = false;
+ private bool _isSelected = false;
 
     public string Name
     {
         get => _name;
         set
-        {
-            if (_name != value)
+     {
+    if (_name != value)
             {
-                _name = value;
-                OnPropertyChanged();
-            }
+ _name = value;
+            OnPropertyChanged();
+     }
         }
     }
 
-    public string Description
+  public string Description
     {
-        get => _description;
+     get => _description;
         set
         {
-            if (_description != value)
-            {
-                _description = value;
-                OnPropertyChanged();
-                OnPropertyChanged(nameof(DescriptionVisibility));
-            }
+ if (_description != value)
+          {
+  _description = value;
+    OnPropertyChanged();
+             OnPropertyChanged(nameof(DescriptionVisibility));
+ }
         }
     }
 
     public string Shortcut
     {
-        get => _shortcut;
-        set
+   get => _shortcut;
+    set
         {
-            if (_shortcut != value)
+      if (_shortcut != value)
             {
-                _shortcut = value;
-                OnPropertyChanged();
-                OnPropertyChanged(nameof(ShortcutVisibility));
+          _shortcut = value;
+   OnPropertyChanged();
+ OnPropertyChanged(nameof(ShortcutVisibility));
             }
         }
     }
 
-    public List<string> SearchTerms
+public List<string> SearchTerms
     {
         get => _searchTerms;
         set
         {
-            if (_searchTerms != value)
-            {
-                _searchTerms = value;
+    if (_searchTerms != value)
+       {
+    _searchTerms = value;
                 OnPropertyChanged();
-            }
+ }
         }
     }
 
     public Func<Task> Action
     {
-        get => _action;
+      get => _action;
         set
-        {
+ {
             if (_action != value)
             {
-                _action = value;
-                OnPropertyChanged();
-            }
+         _action = value;
+     OnPropertyChanged();
+    }
         }
     }
 
     public bool IsSelected
     {
-        get => _isSelected;
+   get => _isSelected;
         set
         {
-            if (_isSelected != value)
-            {
-                _isSelected = value;
-                OnPropertyChanged();
-            }
+if (_isSelected != value)
+    {
+   _isSelected = value;
+   OnPropertyChanged();
+}
         }
     }
 
@@ -493,6 +545,6 @@ public class CommandItem : INotifyPropertyChanged
 
     protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
     {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 }

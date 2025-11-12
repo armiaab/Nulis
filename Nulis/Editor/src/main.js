@@ -417,14 +417,14 @@ function createPlaceholder() {
     placeholder.id = 'editor-placeholder';
     placeholder.textContent = 'Type your markdown here...';
     placeholder.style.cssText = `
-        position: absolute;
-        top: 36px;
-        left: 5%;
-        color: #6c757d;
+ position: absolute;
+   top: 36px;
+     left: 10%;
+      color: #6c757d;
         opacity: 0.5;
         pointer-events: none;
         font-size: 15px;
-        line-height: 1.7;
+  line-height: 1.7;
         font-family: 'Segoe UI', Arial, sans-serif;
     `;
     
