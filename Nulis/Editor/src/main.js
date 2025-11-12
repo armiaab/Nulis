@@ -581,8 +581,7 @@ editorInstance.action((ctx) => {
 }
 
 function createPlaceholder() {
-    // Remove any existing placeholder
- const existing = document.getElementById('editor-placeholder');
+    const existing = document.getElementById('editor-placeholder');
     if (existing) existing.remove();
     
     const placeholder = document.createElement('div');
@@ -595,12 +594,11 @@ function createPlaceholder() {
         color: #6c757d;
     opacity: 0.5;
   pointer-events: none;
- font-size: 15px;
+ font-size: clamp(15px, 1.2vw, 20px);
         line-height: 1.7;
         font-family: 'Segoe UI', Arial, sans-serif;
     `;
     
-    // Add to app container
     const app = document.getElementById('app');
     if (app) {
         app.appendChild(placeholder);

@@ -211,6 +211,22 @@ public sealed partial class MainWindow : Window
             },
             new Controls.CommandItem
             {
+                Name = "Start/Stop Timer",
+                Description = "Toggle the 15-minute focus timer",
+                Shortcut = "",
+                SearchTerms = new List<string> { "timer", "start", "stop", "toggle", "focus", "pomodoro" },
+                Action = () => { StatusBarControl.ToggleTimer(); return Task.CompletedTask; }
+            },
+            new Controls.CommandItem
+            {
+                Name = "Reset Timer",
+                Description = "Reset the timer to 15:00",
+                Shortcut = "",
+                SearchTerms = new List<string> { "timer", "reset", "restart", "clear" },
+                Action = () => { StatusBarControl.ResetTimer(); return Task.CompletedTask; }
+            },
+            new Controls.CommandItem
+            {
                 Name = "Undo",
                 Description = "Undo the last action",
                 Shortcut = "Ctrl+Z",

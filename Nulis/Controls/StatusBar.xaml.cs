@@ -124,7 +124,7 @@ public sealed partial class StatusBar : UserControl
         ResetTimer();
     }
 
-    private void StartTimer()
+    public void StartTimer()
     {
         _isTimerRunning = true;
         _remainingTime = TimeSpan.FromMinutes(15);
@@ -140,7 +140,7 @@ public sealed partial class StatusBar : UserControl
         UpdateTimerStyle();
     }
 
-    private void StopTimer()
+    public void StopTimer()
     {
         _isTimerRunning = false;
         _timer?.Stop();
@@ -148,7 +148,7 @@ public sealed partial class StatusBar : UserControl
         UpdateTimerStyle();
     }
 
-    private void ResetTimer()
+    public void ResetTimer()
     {
         _isTimerRunning = false;
         _timer?.Stop();
@@ -157,6 +157,18 @@ public sealed partial class StatusBar : UserControl
 
         UpdateTimerDisplay();
         UpdateTimerStyle();
+    }
+    
+    public void ToggleTimer()
+    {
+        if (_isTimerRunning)
+        {
+            StopTimer();
+        }
+        else
+        {
+            StartTimer();
+        }
     }
 
     private void Timer_Tick(object? sender, object e)
