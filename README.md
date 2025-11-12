@@ -9,6 +9,9 @@ Built with WinUI 3, .NET 8, and Milkdown for a beautiful, distraction-free writi
 ![.NET](https://img.shields.io/badge/.NET-8.0-purple)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
+![](docs/1.png)
+![](docs/2.png)
+
 ## ✨ Features
 
 - 🎨 **Clean Interface** - Minimalist, distraction-free design
