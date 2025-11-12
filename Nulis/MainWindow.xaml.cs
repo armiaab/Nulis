@@ -17,12 +17,11 @@ public sealed partial class MainWindow : Window
     private bool _isReady = false;
     private string _currentFileName = "Untitled.md";
     private string? _currentFilePath;
-
-    // File state tracking
     private bool _hasUnsavedChanges = false;
     private string _lastSavedContent = "";
     private bool _isFileModified = false;
     private DispatcherTimer? _contentCheckTimer;
+    private Controls.CustomCommandPalette? _currentPalette;
 
     public MainWindow()
     {
@@ -33,8 +32,9 @@ public sealed partial class MainWindow : Window
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(CustomTitleBar);
         UpdateTitleBarTheme();
-
         SetupKeyboardShortcuts();
+        
+        this.Closed += MainWindow_Closed;
 
         if (Content is FrameworkElement content)
         {
@@ -69,7 +69,6 @@ public sealed partial class MainWindow : Window
 
             if (isDark)
             {
-                // Dark theme colors
                 titleBar.ButtonForegroundColor = Windows.UI.Color.FromArgb(255, 255, 255, 255);
                 titleBar.ButtonHoverForegroundColor = Windows.UI.Color.FromArgb(255, 255, 255, 255);
                 titleBar.ButtonPressedForegroundColor = Windows.UI.Color.FromArgb(255, 200, 200, 200);
@@ -82,7 +81,6 @@ public sealed partial class MainWindow : Window
             }
             else
             {
-                // Light theme colors
                 titleBar.ButtonForegroundColor = Windows.UI.Color.FromArgb(255, 0, 0, 0);
                 titleBar.ButtonHoverForegroundColor = Windows.UI.Color.FromArgb(255, 0, 0, 0);
                 titleBar.ButtonPressedForegroundColor = Windows.UI.Color.FromArgb(255, 96, 96, 96);
@@ -105,7 +103,7 @@ public sealed partial class MainWindow : Window
             rootGrid.KeyDown += RootGrid_KeyDown;
         }
 
-        _logger.LogDebug("Keyboard shortcuts configured (Ctrl+N = New File, Ctrl+O = Open, Ctrl+S = Save, Ctrl+Shift+S = Save As, F2 = Rename, Ctrl+Shift+P = Command Palette)");
+        _logger.LogDebug("Keyboard shortcuts configured");
     }
 
     private async void RootGrid_KeyDown(object sender, KeyRoutedEventArgs e)
@@ -119,52 +117,42 @@ public sealed partial class MainWindow : Window
         if (e.Key == Windows.System.VirtualKey.N && isCtrlPressed)
         {
             e.Handled = true;
-            _logger.LogDebug("Ctrl+N pressed, creating new file");
             await CreateNewFile();
         }
         else if (e.Key == Windows.System.VirtualKey.F2)
         {
             e.Handled = true;
-            _logger.LogDebug("F2 pressed, showing rename dialog");
             await ShowRenameDialog();
         }
         else if (e.Key == Windows.System.VirtualKey.P && isCtrlPressed && isShiftPressed)
         {
             e.Handled = true;
-            _logger.LogDebug("Ctrl+Shift+P pressed, showing command palette");
             await ShowCommandPalette();
         }
         else if (e.Key == Windows.System.VirtualKey.O && isCtrlPressed)
         {
             e.Handled = true;
-            _logger.LogDebug("Ctrl+O pressed, showing open file dialog");
             await ShowOpenFileDialog();
         }
         else if (e.Key == Windows.System.VirtualKey.S && isCtrlPressed && isShiftPressed)
         {
             e.Handled = true;
-            _logger.LogDebug("Ctrl+Shift+S pressed, showing save as dialog");
             await SaveFileAsAsync();
         }
         else if (e.Key == Windows.System.VirtualKey.S && isCtrlPressed)
         {
             e.Handled = true;
-            _logger.LogDebug("Ctrl+S pressed, saving file");
             await SaveFileAsync();
         }
         else if (e.Key == Windows.System.VirtualKey.Escape)
         {
             e.Handled = true;
-            _logger.LogDebug("Escape pressed, hiding command palette if open");
             HideCommandPalette();
         }
     }
 
-    private Controls.CustomCommandPalette? _currentPalette;
-
     private async Task ShowCommandPalette()
     {
-        // Don't show if already showing
         if (_currentPalette != null) return;
 
         var commands = new List<Controls.CommandItem>
@@ -267,20 +255,12 @@ public sealed partial class MainWindow : Window
             }
         };
 
-        // Create the custom command palette
         _currentPalette = new Controls.CustomCommandPalette();
-
-        // Set up commands and size
         _currentPalette.SetCommands(commands);
-
-        // Make it responsive to window size
+        
         var windowSize = AppWindow.Size;
         _currentPalette.SetResponsiveSize(windowSize.Width, windowSize.Height);
-
-        // Handle close event
         _currentPalette.CloseRequested += (s, e) => HideCommandPalette();
-
-        // Show the palette
         _currentPalette.Show(this.Content.XamlRoot);
     }
 
@@ -295,7 +275,6 @@ public sealed partial class MainWindow : Window
 
     private async Task ShowOpenFileDialog()
     {
-        // Check for unsaved changes before opening a new file
         bool hasUnsavedChanges = await CheckForUnsavedChanges();
         
         if (hasUnsavedChanges)
@@ -314,17 +293,14 @@ public sealed partial class MainWindow : Window
 
             if (result == ContentDialogResult.Primary)
             {
-                // User chose to save
                 await SaveFileAsync();
             }
             else if (result == ContentDialogResult.Secondary)
             {
-                // User chose not to save, discard changes
-                _logger.LogDebug("Unsaved changes discarded for file open");
+                _logger.LogDebug("Unsaved changes discarded");
             }
             else
             {
-                // User cancelled, do not open new file
                 return;
             }
         }
@@ -345,12 +321,8 @@ public sealed partial class MainWindow : Window
             var file = await picker.PickSingleFileAsync();
             if (file != null)
             {
-                _logger.LogInformation("File selected: {FileName} at {Path}", file.Name, file.Path);
+                _logger.LogInformation("File selected: {FileName}", file.Name);
                 await LoadFileAsync(file);
-            }
-            else
-            {
-                _logger.LogDebug("File open cancelled");
             }
         }
         catch (Exception ex)
@@ -364,8 +336,7 @@ public sealed partial class MainWindow : Window
         try
         {
             var content = await Windows.Storage.FileIO.ReadTextAsync(file);
-            _logger.LogInformation("File read successfully, content length: {Length}", content.Length);
-
+            
             _currentFilePath = file.Path;
             _currentFileName = file.Name;
             _lastSavedContent = content;
@@ -375,18 +346,15 @@ public sealed partial class MainWindow : Window
             int attempts = 0;
             while (!_isReady && attempts < 100)
             {
-                _logger.LogDebug("Waiting for editor to be ready... attempt {Attempt}", attempts);
                 await Task.Delay(100);
                 attempts++;
             }
 
             if (!_isReady)
             {
-                _logger.LogError("Editor not ready after 10 seconds");
+                _logger.LogError("Editor not ready after timeout");
                 return;
             }
-
-            _logger.LogInformation("Editor is ready, loading content...");
 
             bool success = false;
 
@@ -394,11 +362,10 @@ public sealed partial class MainWindow : Window
             {
                 await SetMarkdownAsync(content);
                 success = true;
-                _logger.LogInformation("Content loaded using SetMarkdownAsync");
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Method 1 failed, trying alternative...");
+                _logger.LogWarning(ex, "Primary load method failed, trying alternative");
             }
 
             if (!success)
@@ -406,25 +373,20 @@ public sealed partial class MainWindow : Window
                 try
                 {
                     var escapedContent = System.Text.Json.JsonSerializer.Serialize(content);
-                    var script = $"if (window.setMarkdown) {{ window.setMarkdown({escapedContent}); }} else {{ console.error('setMarkdown not available'); }}";
+                    var script = $"if (window.setMarkdown) {{ window.setMarkdown({escapedContent}); }}";
                     await EditorWebView.ExecuteScriptAsync(script);
                     success = true;
-                    _logger.LogInformation("Content loaded using direct script execution");
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Method 2 also failed");
+                    _logger.LogError(ex, "Alternative load method also failed");
                 }
             }
 
             if (success)
             {
                 MarkFileAsSaved();
-                _logger.LogInformation("File loaded successfully: {FileName}", file.Name);
-            }
-            else
-            {
-                _logger.LogError("All loading methods failed");
+                _logger.LogInformation("File loaded: {FileName}", file.Name);
             }
         }
         catch (Exception ex)
@@ -447,7 +409,6 @@ public sealed partial class MainWindow : Window
 
     private async Task ShowRenameDialog()
     {
-        // Can't rename a file that hasn't been saved yet
         if (string.IsNullOrEmpty(_currentFilePath))
         {
             var infoDialog = new ContentDialog
@@ -489,7 +450,6 @@ public sealed partial class MainWindow : Window
 
             if (string.IsNullOrWhiteSpace(newFileName))
             {
-                _logger.LogWarning("Empty filename entered, keeping current name");
                 return;
             }
 
@@ -500,27 +460,23 @@ public sealed partial class MainWindow : Window
                 newFileName += ".md";
             }
 
-            // Don't rename if the name hasn't changed
             if (newFileName.Equals(_currentFileName, StringComparison.OrdinalIgnoreCase))
             {
-                _logger.LogDebug("Filename unchanged, skipping rename");
                 return;
             }
 
-            // Attempt to rename the actual file
             try
             {
                 var oldFile = await Windows.Storage.StorageFile.GetFileFromPathAsync(_currentFilePath);
                 var folder = await oldFile.GetParentAsync();
                 var newPath = Path.Combine(folder.Path, newFileName);
 
-                // Check if a file with the new name already exists
                 if (File.Exists(newPath))
                 {
                     var conflictDialog = new ContentDialog
                     {
                         Title = "File Already Exists",
-                        Content = $"A file named '{newFileName}' already exists in this location. Please choose a different name.",
+                        Content = $"A file named '{newFileName}' already exists in this location.",
                         CloseButtonText = "OK",
                         XamlRoot = this.Content.XamlRoot
                     };
@@ -528,18 +484,14 @@ public sealed partial class MainWindow : Window
                     return;
                 }
 
-                // Rename the file
                 await oldFile.RenameAsync(newFileName, Windows.Storage.NameCollisionOption.FailIfExists);
 
-                // Update the current file path and name
                 _currentFilePath = newPath;
                 _currentFileName = newFileName;
                 UpdateTitle();
 
-                _logger.LogInformation("File successfully renamed from '{OldName}' to '{NewName}' at {Path}",
-                    oldFile.Name, newFileName, newPath);
+                _logger.LogInformation("File renamed to: {NewName}", newFileName);
 
-                // Show success message
                 var successDialog = new ContentDialog
                 {
                     Title = "File Renamed",
@@ -548,30 +500,6 @@ public sealed partial class MainWindow : Window
                     XamlRoot = this.Content.XamlRoot
                 };
                 await successDialog.ShowAsync();
-            }
-            catch (FileNotFoundException)
-            {
-                _logger.LogError("File not found at path: {Path}", _currentFilePath);
-                var errorDialog = new ContentDialog
-                {
-                    Title = "Error",
-                    Content = "The file could not be found. It may have been moved or deleted.",
-                    CloseButtonText = "OK",
-                    XamlRoot = this.Content.XamlRoot
-                };
-                await errorDialog.ShowAsync();
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                _logger.LogError(ex, "Access denied while renaming file");
-                var errorDialog = new ContentDialog
-                {
-                    Title = "Error",
-                    Content = "Access denied. You may not have permission to rename this file.",
-                    CloseButtonText = "OK",
-                    XamlRoot = this.Content.XamlRoot
-                };
-                await errorDialog.ShowAsync();
             }
             catch (Exception ex)
             {
@@ -585,10 +513,6 @@ public sealed partial class MainWindow : Window
                 };
                 await errorDialog.ShowAsync();
             }
-        }
-        else
-        {
-            _logger.LogDebug("Rename cancelled");
         }
     }
 
@@ -615,11 +539,11 @@ public sealed partial class MainWindow : Window
             {
                 var htmlUri = new Uri($"file:///{htmlPath.Replace("\\", "/")}");
                 EditorWebView.CoreWebView2.Navigate(htmlUri.AbsoluteUri);
-                _logger.LogInformation("Loading Milkdown from: {HtmlUri}", htmlUri.AbsoluteUri);
+                _logger.LogInformation("Loading editor from: {HtmlUri}", htmlUri.AbsoluteUri);
             }
             else
             {
-                _logger.LogError("Milkdown not found at: {HtmlPath}", htmlPath);
+                _logger.LogError("Editor not found at: {HtmlPath}", htmlPath);
             }
 
             EditorWebView.NavigationCompleted += OnNavigationCompleted;
@@ -650,26 +574,17 @@ public sealed partial class MainWindow : Window
 
             EditorWebView.CoreWebView2.MemoryUsageTargetLevel = CoreWebView2MemoryUsageTargetLevel.Low;
 
-            _logger.LogInformation("WebView2 performance settings configured");
+            _logger.LogInformation("WebView2 configured");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to configure WebView2 performance settings");
+            _logger.LogError(ex, "Failed to configure WebView2");
         }
     }
 
     private void CoreWebView2_ContextMenuRequested(CoreWebView2 sender, CoreWebView2ContextMenuRequestedEventArgs args)
     {
         var menuItems = args.MenuItems;
-
-        _logger.LogDebug("Context menu requested: {Count} items", menuItems.Count);
-
-        for (int i = 0; i < menuItems.Count; i++)
-        {
-            var item = menuItems[i];
-            _logger.LogTrace("[{Index}] Name: '{Name}', Label: '{Label}', Kind: {Kind}",
-                i, item.Name, item.Label, item.Kind);
-        }
 
         var hasSpellingSuggestions = false;
         for (int i = 0; i < menuItems.Count; i++)
@@ -692,21 +607,16 @@ public sealed partial class MainWindow : Window
         }
         else
         {
-            _logger.LogDebug("Spell-check context detected");
-
             for (int i = menuItems.Count - 1; i >= 0; i--)
             {
                 var item = menuItems[i];
                 var name = item.Name?.ToLower() ?? "";
                 var label = item.Label?.ToLower() ?? "";
 
-                if (name.Contains("inspect") ||
-                    name.Contains("reload") ||
-                    name.Contains("view") ||
-                    label.Contains("inspect") ||
+                if (name.Contains("inspect") || name.Contains("reload") || 
+                    name.Contains("view") || label.Contains("inspect") || 
                     label.Contains("reload"))
                 {
-                    _logger.LogTrace("Removing menu item: {Label}", item.Label);
                     menuItems.RemoveAt(i);
                 }
             }
@@ -823,13 +733,13 @@ public sealed partial class MainWindow : Window
         {
             if (!args.IsSuccess)
             {
-                _logger.LogWarning("Navigation failed with WebErrorStatus: {Status}", args.WebErrorStatus);
+                _logger.LogWarning("Navigation failed: {Status}", args.WebErrorStatus);
             }
             return;
         }
 
         _isReady = true;
-        _logger.LogInformation("Editor navigation completed, setting ready flag");
+        _logger.LogInformation("Editor ready");
 
         EditorWebView.CoreWebView2.WebMessageReceived += CoreWebView2_WebMessageReceived;
 
@@ -837,43 +747,24 @@ public sealed partial class MainWindow : Window
 
         try
         {
-            await ExecuteScriptSafely("if(window.forceSpellcheck) window.forceSpellcheck();");
-
-            await Task.Delay(200);
-
             await ExecuteScriptSafely(@"
-                    if(window.forceSpellcheck) window.forceSpellcheck();
-                    
-                    document.querySelectorAll('[contenteditable]').forEach((el, i) => {
-                        console.log('Editable ' + i + ':', {
-                            tag: el.tagName,
-                            spellcheck_attr: el.getAttribute('spellcheck'),
-                            spellcheck_prop: el.spellcheck,
-                            contenteditable: el.contentEditable
-                        });
-                    });
-                ");
-
-            await ExecuteScriptSafely(@"
-                    const style = document.createElement('style');
-                    style.textContent = `
-                        ::-webkit-scrollbar { display: none; }
-                        body { -ms-overflow-style: none; scrollbar-width: none; }
-                    `;
-                    document.head.appendChild(style);
-                ");
+                const style = document.createElement('style');
+                style.textContent = `
+                    ::-webkit-scrollbar { display: none; }
+                    body { -ms-overflow-style: none; scrollbar-width: none; }
+                `;
+                document.head.appendChild(style);
+            ");
 
             var isDark = Content is FrameworkElement fe && fe.ActualTheme == ElementTheme.Dark;
             await ExecuteScriptSafely($"if(window.setTheme) window.setTheme({(isDark ? "true" : "false")});");
-
-            // Set up content change tracking
             await ExecuteScriptSafely("if(window.setupContentChangeTracking) window.setupContentChangeTracking();");
 
-            _logger.LogInformation("Milkdown editor fully initialized and ready with theme: {IsDark}", isDark);
+            _logger.LogInformation("Editor initialized");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to complete navigation setup");
+            _logger.LogError(ex, "Failed to complete editor setup");
         }
     }
 
@@ -884,8 +775,6 @@ public sealed partial class MainWindow : Window
             var message = e.WebMessageAsJson;
             if (string.IsNullOrEmpty(message))
                 return;
-
-            _logger.LogDebug("WebMessage received: {Message}", message);
 
             var data = System.Text.Json.JsonDocument.Parse(message);
             
@@ -902,7 +791,6 @@ public sealed partial class MainWindow : Window
                 return;
 
             var actionValue = action.GetString();
-            _logger.LogInformation("Processing action: {Action}", actionValue);
 
             switch (actionValue)
             {
@@ -929,9 +817,6 @@ public sealed partial class MainWindow : Window
                     break;
                 case "commandPalette":
                     await ShowCommandPalette();
-                    break;
-                default:
-                    _logger.LogWarning("Unknown action: {Action}", actionValue);
                     break;
             }
         }
@@ -963,18 +848,16 @@ public sealed partial class MainWindow : Window
             var file = await picker.PickSingleFileAsync();
             if (file != null)
             {
-                _logger.LogInformation("Image selected: {FileName}", file.Name);
                 await ProcessImageFile(file);
             }
             else
             {
-                _logger.LogDebug("Image picker cancelled");
                 await ExecuteScriptSafely("if(window.onImagePicked) window.onImagePicked(null, null);");
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to show image picker dialog");
+            _logger.LogError(ex, "Failed to show image picker");
             await ExecuteScriptSafely("if(window.onImagePicked) window.onImagePicked(null, null);");
         }
     }
@@ -1012,11 +895,11 @@ public sealed partial class MainWindow : Window
             var script = $"if(window.onImagePicked) window.onImagePicked({escapedDataUrl}, {escapedFileName});";
             await ExecuteScriptSafely(script);
 
-            _logger.LogInformation("Image processed and sent to editor: {FileName}, size: {Size} bytes", file.Name, bytes.Length);
+            _logger.LogInformation("Image processed: {FileName}", file.Name);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to process image file");
+            _logger.LogError(ex, "Failed to process image");
             await ExecuteScriptSafely("if(window.onImagePicked) window.onImagePicked(null, null);");
         }
     }
@@ -1029,7 +912,7 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Script execution failed: {Script}", script.Length > 50 ? script.Substring(0, 50) + "..." : script);
+            _logger.LogError(ex, "Script execution failed");
         }
     }
 
@@ -1037,7 +920,6 @@ public sealed partial class MainWindow : Window
     {
         if (!_isReady)
         {
-            _logger.LogWarning("GetMarkdownAsync called before editor is ready");
             return "";
         }
 
@@ -1048,7 +930,7 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to get markdown content");
+            _logger.LogError(ex, "Failed to get markdown");
             return "";
         }
     }
@@ -1057,7 +939,6 @@ public sealed partial class MainWindow : Window
     {
         if (!_isReady)
         {
-            _logger.LogWarning("SetMarkdownAsync called before editor is ready");
             return;
         }
 
@@ -1065,11 +946,10 @@ public sealed partial class MainWindow : Window
         {
             var json = System.Text.Json.JsonSerializer.Serialize(markdown);
             await EditorWebView.ExecuteScriptAsync($"setMarkdown({json})");
-            _logger.LogDebug("SetMarkdownAsync completed");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to set markdown content");
+            _logger.LogError(ex, "Failed to set markdown");
         }
     }
 
@@ -1094,8 +974,8 @@ public sealed partial class MainWindow : Window
             var file = await Windows.Storage.StorageFile.GetFileFromPathAsync(_currentFilePath);
             await Windows.Storage.FileIO.WriteTextAsync(file, content);
 
-            _lastSavedContent = content; // Update last saved content
-            MarkFileAsSaved(); // Mark as saved
+            _lastSavedContent = content;
+            MarkFileAsSaved();
 
             _logger.LogInformation("File saved: {FileName}", _currentFileName);
         }
@@ -1131,16 +1011,12 @@ public sealed partial class MainWindow : Window
                 MarkFileAsSaved();
                 UpdateFileTypeInStatusBar();
 
-                _logger.LogInformation("File saved as: {FileName} at {Path}", file.Name, file.Path);
-            }
-            else
-            {
-                _logger.LogDebug("Save as cancelled");
+                _logger.LogInformation("File saved as: {FileName}", file.Name);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to show save file dialog");
+            _logger.LogError(ex, "Failed to save file");
         }
     }
 
@@ -1151,15 +1027,8 @@ public sealed partial class MainWindow : Window
             _hasUnsavedChanges = true;
             _isFileModified = true;
             
-            // Update title immediately on UI thread
-            DispatcherQueue.TryEnqueue(() => {
-                UpdateTitle();
-            });
-            
-            // Start periodic content checking for ultra-fast updates
+            DispatcherQueue.TryEnqueue(() => UpdateTitle());
             StartContentCheckTimer();
-            
-            _logger.LogDebug("File marked as modified");
         }
     }
 
@@ -1168,15 +1037,8 @@ public sealed partial class MainWindow : Window
         _hasUnsavedChanges = false;
         _isFileModified = false;
         
-        // Update title immediately on UI thread
-        DispatcherQueue.TryEnqueue(() => {
-            UpdateTitle();
-        });
-        
-        // Stop periodic checking when file is saved
+        DispatcherQueue.TryEnqueue(() => UpdateTitle());
         StopContentCheckTimer();
-        
-        _logger.LogDebug("File marked as saved");
     }
 
     private void StartContentCheckTimer()
@@ -1185,7 +1047,7 @@ public sealed partial class MainWindow : Window
         {
             _contentCheckTimer = new DispatcherTimer
             {
-                Interval = TimeSpan.FromMilliseconds(50) // Check every 50ms for ultra-fast response
+                Interval = TimeSpan.FromMilliseconds(50)
             };
             _contentCheckTimer.Tick += async (s, e) => await ContentCheckTimer_Tick();
         }
@@ -1193,7 +1055,6 @@ public sealed partial class MainWindow : Window
         if (!_contentCheckTimer.IsEnabled)
         {
             _contentCheckTimer.Start();
-            _logger.LogDebug("Content check timer started for fast title updates");
         }
     }
 
@@ -1202,7 +1063,6 @@ public sealed partial class MainWindow : Window
         if (_contentCheckTimer?.IsEnabled == true)
         {
             _contentCheckTimer.Stop();
-            _logger.LogDebug("Content check timer stopped");
         }
     }
 
@@ -1210,12 +1070,10 @@ public sealed partial class MainWindow : Window
     {
         try
         {
-            // Only check if editor is ready and we think there might be changes
             if (_isReady && _hasUnsavedChanges)
             {
                 var currentContent = await GetMarkdownAsync();
                 
-                // If content matches saved content, mark as saved
                 if (currentContent == _lastSavedContent && _hasUnsavedChanges)
                 {
                     _hasUnsavedChanges = false;
@@ -1227,7 +1085,7 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in content check timer");
+            _logger.LogError(ex, "Error in content check");
             StopContentCheckTimer();
         }
     }
@@ -1239,8 +1097,6 @@ public sealed partial class MainWindow : Window
         try
         {
             var currentContent = await GetMarkdownAsync();
-
-            // Compare with last saved content
             bool hasChanges = currentContent != _lastSavedContent;
 
             if (hasChanges != _hasUnsavedChanges)
@@ -1281,11 +1137,7 @@ public sealed partial class MainWindow : Window
             {
                 await SaveFileAsync();
             }
-            else if (result == ContentDialogResult.Secondary)
-            {
-                _logger.LogDebug("Unsaved changes discarded");
-            }
-            else
+            else if (result != ContentDialogResult.Secondary)
             {
                 return;
             }
@@ -1299,6 +1151,52 @@ public sealed partial class MainWindow : Window
         MarkFileAsSaved();
         UpdateFileTypeInStatusBar();
 
-        _logger.LogInformation("Created new file");
+        _logger.LogInformation("New file created");
+    }
+
+    private async void MainWindow_Closed(object sender, WindowEventArgs args)
+    {
+        if (_hasUnsavedChanges)
+        {
+            args.Handled = true;
+            await HandleUnsavedChangesOnClose();
+        }
+        else
+        {
+            StatusBarControl.Cleanup();
+        }
+    }
+
+    private async Task HandleUnsavedChangesOnClose()
+    {
+        var dialog = new ContentDialog
+        {
+            Title = "Unsaved Changes",
+            Content = $"Do you want to save changes to '{_currentFileName}'?",
+            PrimaryButtonText = "Save",
+            SecondaryButtonText = "Don't Save",
+            CloseButtonText = "Cancel",
+            DefaultButton = ContentDialogButton.Primary,
+            XamlRoot = this.Content.XamlRoot
+        };
+
+        var result = await dialog.ShowAsync();
+
+        if (result == ContentDialogResult.Primary)
+        {
+            await SaveFileAsync();
+            
+            if (!_hasUnsavedChanges)
+            {
+                StatusBarControl.Cleanup();
+                this.Close();
+            }
+        }
+        else if (result == ContentDialogResult.Secondary)
+        {
+            StatusBarControl.Cleanup();
+            _hasUnsavedChanges = false;
+            this.Close();
+        }
     }
 }

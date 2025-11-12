@@ -80,6 +80,8 @@ For testers and developers:
 | Command Palatte | `Ctrl+Shift+P` |
 | Rename File | `F2` |
 | Format Menu | `/` |
+| Zoom in/out | `Ctrl+plus/minus` |
+| Reset the zoom leve | `Ctrl+0` |
 
 ### File Associations
 
