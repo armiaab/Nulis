@@ -59,7 +59,7 @@ public sealed partial class StatusBar : UserControl
             return 0;
 
         text = text.Replace("\r\n", "\n").Replace("\r", "\n");
-        
+
         var count = 0;
         foreach (var c in text)
         {
@@ -77,22 +77,14 @@ public sealed partial class StatusBar : UserControl
             return 0;
 
         text = text.Replace("\r\n", "\n").Replace("\r", "\n");
-        
         text = System.Text.RegularExpressions.Regex.Replace(text, @"\s+", " ");
-        
+        text = text.Trim();
+
+        if (string.IsNullOrEmpty(text))
+            return 0;
+
         var words = text.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-        
-        var validWords = 0;
-        foreach (var word in words)
-        {
-            var trimmed = word.Trim();
-            if (!string.IsNullOrEmpty(trimmed))
-            {
-                validWords++;
-            }
-        }
-        
-        return validWords;
+        return words.Length;
     }
 
     private void Timer_PointerEntered(object sender, PointerRoutedEventArgs e)
@@ -158,7 +150,7 @@ public sealed partial class StatusBar : UserControl
         UpdateTimerDisplay();
         UpdateTimerStyle();
     }
-    
+
     public void ToggleTimer()
     {
         if (_isTimerRunning)
@@ -213,40 +205,40 @@ public sealed partial class StatusBar : UserControl
 
     private void UpdateTimerStyle()
     {
-    if (_isTimerRunning)
-    {
-        var accentColor = (Windows.UI.Color)Application.Current.Resources["SystemAccentColor"];
-        TimerText.Foreground = new SolidColorBrush(accentColor);
-        TimerIcon.Foreground = new SolidColorBrush(accentColor);
-        TimerText.Opacity = 1.0;
-        TimerIcon.Opacity = 1.0;
+        if (_isTimerRunning)
+        {
+            var accentColor = (Windows.UI.Color)Application.Current.Resources["SystemAccentColor"];
+            TimerText.Foreground = new SolidColorBrush(accentColor);
+            TimerIcon.Foreground = new SolidColorBrush(accentColor);
+            TimerText.Opacity = 1.0;
+            TimerIcon.Opacity = 1.0;
+        }
+        else
+        {
+            TimerText.Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"];
+            TimerIcon.Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"];
+            TimerText.Opacity = 0.8;
+            TimerIcon.Opacity = 0.8;
+        }
+
+        UpdateTimerHoverState();
     }
-    else
+
+    private async void ShowTimerCompletedNotification()
     {
-        TimerText.Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"];
-        TimerIcon.Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"];
-        TimerText.Opacity = 0.8;
-        TimerIcon.Opacity = 0.8;
+        var dialog = new ContentDialog
+        {
+            Title = "Timer Completed",
+            Content = "Your 15-minute focus session is complete!",
+            CloseButtonText = "OK",
+            XamlRoot = this.XamlRoot
+        };
+
+        await dialog.ShowAsync();
     }
-    
-    UpdateTimerHoverState();
-}
 
-private async void ShowTimerCompletedNotification()
-{
-    var dialog = new ContentDialog
+    public void Cleanup()
     {
-        Title = "Timer Completed",
-        Content = "Your 15-minute focus session is complete!",
-        CloseButtonText = "OK",
-        XamlRoot = this.XamlRoot
-    };
-
-    await dialog.ShowAsync();
-}
-
-public void Cleanup()
-{
-    ResetTimer();
-}
+        ResetTimer();
+    }
 }

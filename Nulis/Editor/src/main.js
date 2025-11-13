@@ -474,11 +474,43 @@ async function createEditor() {
       if (window.chrome && window.chrome.webview) {
          // Get the actual rendered text content instead of markdown
          const view = ctx.get(editorViewCtx);
-         const textContent = view.state.doc.textContent || '';
+         const serializer = ctx.get(serializerCtx);
+         
+         // Get markdown for saving, but plain text for stats
+         const markdownContent = serializer(view.state.doc);
+         
+         // Extract pure text content by removing markdown formatting
+         let plainText = markdownContent
+            // Remove headings markers
+            .replace(/^#+\s+/gm, '')
+            // Remove bold/italic markers
+            .replace(/\*\*([^*]+)\*\*/g, '$1')
+            .replace(/\*([^*]+)\*/g, '$1')
+            .replace(/__([^_]+)__/g, '$1')
+            .replace(/_([^_]+)_/g, '$1')
+            // Remove strikethrough
+            .replace(/~~([^~]+)~~/g, '$1')
+            // Remove links, keep text
+            .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+            // Remove images
+            .replace(/!\[([^\]]*)\]\([^)]+\)/g, '')
+            // Remove code blocks markers
+            .replace(/```[^`]*```/g, '')
+            .replace(/`([^`]+)`/g, '$1')
+            // Remove blockquote markers
+            .replace(/^>\s+/gm, '')
+            // Remove list markers
+            .replace(/^[\*\-\+]\s+/gm, '')
+            .replace(/^\d+\.\s+/gm, '')
+            // Remove horizontal rules
+            .replace(/^---+$/gm, '')
+            .replace(/^\*\*\*+$/gm, '')
+            // Normalize whitespace
+            .trim();
          
          window.chrome.webview.postMessage({
       type: 'change',
-                  content: textContent.trim()
+                  content: plainText
           });
         }
       
